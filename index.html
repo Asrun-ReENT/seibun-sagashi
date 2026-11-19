@@ -228,7 +228,7 @@
     </fieldset>
 
     <fieldset>
-      <legend>肌質</legend>
+      <legend>肌質<span class="opt">複数選択可</span></legend>
       <div class="chips" id="skinChips"></div>
     </fieldset>
 
@@ -2582,7 +2582,7 @@ const BASE_INGS = ["水", "BG", "DPG", "PG", "エタノール", "変性アルコ
   });
 
   const PAGE = 30; // 検索結果を一度に出す件数
-  const state = { age: null, skin: null, concerns: {}, target: "all", products: {}, query: "", limit: PAGE, cap: null };
+  const state = { age: null, skin: {}, concerns: {}, target: "all", products: {}, query: "", limit: PAGE, cap: null };
 
   const $ = function (id) { return document.getElementById(id); };
   const esc = function (s) {
@@ -2680,7 +2680,10 @@ const BASE_INGS = ["水", "BG", "DPG", "PG", "エタノール", "変性アルコ
 
     const skin = $("skinChips"); skin.innerHTML = "";
     SKIN_TYPES.forEach(function (s) {
-      skin.appendChild(chip(s.label, state.skin === s.id, function () { state.skin = state.skin === s.id ? null : s.id; render(); }));
+      skin.appendChild(chip(s.label, !!state.skin[s.id], function () {
+        if (state.skin[s.id]) delete state.skin[s.id]; else state.skin[s.id] = true;
+        render();
+      }));
     });
 
     const con = $("concernChips"); con.innerHTML = "";
@@ -2793,7 +2796,7 @@ const BASE_INGS = ["水", "BG", "DPG", "PG", "エタノール", "変性アルコ
       });
     }
     CONCERNS.forEach(function (c) { if (state.concerns[c.id]) add(c.groups, "「" + c.label + "」"); });
-    SKIN_TYPES.forEach(function (s) { if (state.skin === s.id) add(s.groups, s.label); });
+    SKIN_TYPES.forEach(function (s) { if (state.skin[s.id]) add(s.groups, s.label); });
     return order.map(function (g) { return map[g]; });
   }
 
@@ -2830,8 +2833,7 @@ const BASE_INGS = ["水", "BG", "DPG", "PG", "エタノール", "変性アルコ
     // 条件サマリー
     const tags = [];
     if (state.age) tags.push(state.age);
-    const sk = SKIN_TYPES.find(function (s) { return s.id === state.skin; });
-    if (sk) tags.push(sk.label);
+    SKIN_TYPES.forEach(function (s) { if (state.skin[s.id]) tags.push(s.label); });
     CONCERNS.forEach(function (c) { if (state.concerns[c.id]) tags.push(c.label); });
     const analyzable = chosen.filter(function (p) { return p._hasIng; });
     const pendingN = chosen.length - analyzable.length;
