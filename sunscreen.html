@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>成分さがし ／ 日焼け止め</title>
+<style>
+  :root {
+    --bg: #faf5ee; --surface: #ffffff; --surface-2: #f6ece0;
+    --ink: #2f2620; --muted: #6f6157; --line: #e6dbcd;
+    --accent: #b04e17; --accent-ink: #ffffff; --accent-soft: #fbe7d9;
+    --amber: #7d5a12; --amber-soft: #f6eed6;
+    --rose: #a44a52; --rose-soft: #f9e7e7;
+    --shadow: 0 1px 2px rgba(47,38,32,.06), 0 8px 24px rgba(47,38,32,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1511; --surface: #251e18; --surface-2: #2d241d;
+      --ink: #f3ebe4; --muted: #b9a99c; --line: #43372d;
+      --accent: #f2a36b; --accent-ink: #2a160a; --accent-soft: #4a2e1b;
+      --amber: #e3c066; --amber-soft: #3d3519;
+      --rose: #e79aa0; --rose-soft: #3d2428;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+    font-size: 15px; line-height: 1.65;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 16px 14px calc(48px + env(safe-area-inset-bottom)); }
+
+  /* ---------- header ---------- */
+  header.top { padding: 8px 2px 14px; }
+  .app-name { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .08em; margin: 0 0 2px; }
+  h1 { font-size: 22px; line-height: 1.4; margin: 0 0 6px; }
+  header.top p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  .sample-banner {
+    margin-top: 12px; padding: 8px 12px; border-radius: 10px;
+    background: var(--amber-soft); color: var(--amber); font-size: 13px; font-weight: 700;
+  }
+
+  /* ---------- panels ---------- */
+  .panel {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: var(--shadow); padding: 18px 16px 20px; margin-bottom: 16px;
+  }
+  .panel h2 { font-size: 18px; margin: 0 0 4px; }
+  .panel .lead { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+
+  fieldset { border: 0; margin: 0 0 20px; padding: 0; min-width: 0; }
+  fieldset:last-child { margin-bottom: 0; }
+  legend { font-weight: 800; font-size: 14px; margin-bottom: 8px; padding: 0; }
+  legend .opt { font-size: 11.5px; font-weight: 500; color: var(--muted); margin-left: 6px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    appearance: none; cursor: pointer; font: inherit; font-size: 14px; font-weight: 500;
+    min-height: 40px; padding: 6px 14px; border-radius: 999px;
+    border: 1.5px solid var(--line); background: var(--surface); color: var(--ink);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+  button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .target-guide {
+    margin-top: 10px; border-radius: 10px; padding: 10px 12px;
+    background: var(--surface-2); font-size: 13px;
+  }
+  .target-guide b { color: var(--accent); }
+
+  /* ---------- product picker ---------- */
+  .sub-label { font-size: 12.5px; color: var(--muted); font-weight: 700; margin: 12px 0 6px; display: block; }
+  .sub-label:first-of-type { margin-top: 0; }
+  .search-box input {
+    width: 100%; font: inherit; font-size: 16px; /* 16px以上でiOSの自動ズームを防ぐ */
+    min-height: 44px; padding: 8px 14px; border-radius: 10px;
+    border: 1.5px solid var(--line); background: var(--surface); color: var(--ink);
+  }
+  .search-box input::placeholder { color: var(--muted); }
+  .product-list { display: grid; gap: 8px; margin-top: 10px; }
+  .product-row {
+    display: flex; align-items: stretch; border: 1.5px solid var(--line);
+    border-radius: 10px; background: var(--surface); overflow: hidden;
+  }
+  .product-row.on { border-color: var(--accent); background: var(--accent-soft); }
+  .product-row .pick {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px;
+    appearance: none; border: 0; background: transparent; color: var(--ink);
+    font: inherit; text-align: left; padding: 8px 10px; min-height: 52px; cursor: pointer;
+  }
+  .mark {
+    flex: none; width: 22px; height: 22px; border-radius: 50%;
+    border: 1.5px solid var(--line); display: grid; place-items: center;
+    color: transparent; font-size: 13px; font-weight: 900;
+  }
+  .product-row.on .mark { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .ptype {
+    flex: none; font-size: 11px; font-weight: 700; color: var(--accent);
+    background: var(--accent-soft); border-radius: 6px; padding: 1px 7px;
+  }
+  .product-row.on .ptype { background: var(--surface); }
+  .pname { font-weight: 700; font-size: 14px; line-height: 1.4; }
+  .pbrand { display: block; font-size: 12px; color: var(--muted); line-height: 1.45; }
+  .product-row .info {
+    flex: none; appearance: none; border: 0; border-left: 1px solid var(--line);
+    background: transparent; color: var(--accent); font: inherit; font-size: 12px; font-weight: 700;
+    padding: 0 12px; cursor: pointer; min-width: 64px;
+  }
+  .no-hit { color: var(--muted); font-size: 13.5px; padding: 6px 2px; margin: 0; }
+
+  .selected-box { margin-top: 14px; border-top: 1px dashed var(--line); padding-top: 12px; }
+  .selected-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sel-chip {
+    display: inline-flex; align-items: center; gap: 4px; min-height: 36px;
+    padding: 4px 4px 4px 12px; background: var(--accent-soft); border-radius: 999px;
+    font-size: 13px; font-weight: 700;
+  }
+  .sel-chip button {
+    appearance: none; border: 0; cursor: pointer; width: 30px; height: 30px; border-radius: 50%;
+    background: transparent; color: var(--muted); font-size: 16px; line-height: 1;
+  }
+  .muted-note { color: var(--muted); font-size: 13px; }
+
+  /* ---------- results ---------- */
+  .cond-summary { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .tag { font-size: 12.5px; font-weight: 700; padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); }
+  .result-block { margin-bottom: 22px; }
+  .result-block:last-child { margin-bottom: 0; }
+  .result-block h3 { font-size: 15px; font-weight: 800; margin: 0 0 2px; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .dot-missing { background: var(--rose); } .dot-overlap { background: var(--amber); } .dot-rec { background: var(--accent); }
+  .result-block .sub { margin: 0 0 10px; font-size: 12.5px; color: var(--muted); }
+
+  .cat-card { border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; background: var(--rose-soft); color: var(--rose); }
+  .cat-card .cat-name { font-weight: 800; font-size: 14px; }
+  .cat-card .cat-from { font-size: 11.5px; font-weight: 500; opacity: .9; }
+  .cat-card .cat-ings { font-size: 12.5px; color: var(--ink); margin-top: 2px; }
+  .ing-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ing-chip { font-size: 13.5px; font-weight: 700; padding: 5px 12px; border-radius: 8px; background: var(--amber-soft); color: var(--amber); }
+  .ing-chip small { display: block; font-weight: 500; font-size: 11.5px; }
+  .empty-note { border: 1px dashed var(--line); border-radius: 10px; padding: 12px 14px; color: var(--muted); font-size: 13px; background: var(--surface-2); }
+  .ok-note { border-radius: 10px; padding: 12px 14px; font-size: 13px; background: var(--accent-soft); }
+
+  .target-banner {
+    border: 1.5px solid var(--accent); background: var(--accent-soft); border-radius: 10px;
+    padding: 8px 12px; margin-bottom: 10px; font-size: 13px;
+  }
+  .target-banner b { color: var(--accent); font-size: 15px; }
+
+  .card {
+    display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); cursor: pointer;
+    appearance: none; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+    padding: 12px 14px; margin-bottom: 10px; -webkit-tap-highlight-color: transparent;
+  }
+  .card:active { background: var(--surface-2); }
+  .card-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 8px; }
+  .rank { font-size: 12px; font-weight: 800; color: var(--accent-ink); background: var(--accent); border-radius: 6px; padding: 0 8px; }
+  .cname { font-weight: 800; font-size: 15px; }
+  .reason { margin: 6px 0 2px; font-size: 13.5px; }
+  .reason b { color: var(--accent); }
+  .card-foot { margin-top: 4px; font-size: 12px; font-weight: 700; color: var(--accent); }
+
+  footer.note { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.8; padding: 0 2px; }
+  footer.note strong { color: var(--ink); }
+
+  /* ---------- 全成分シート ---------- */
+  dialog.sheet {
+    border: 0; padding: 0; margin: auto auto 0; width: 100%; max-width: 560px;
+    max-height: 80vh; border-radius: 16px 16px 0 0; background: var(--surface); color: var(--ink);
+  }
+  dialog.sheet::backdrop { background: rgba(0,0,0,.4); }
+  .sheet-inner { padding: 18px 16px calc(20px + env(safe-area-inset-bottom)); }
+  .sheet-head { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+  .sheet-head h4 { margin: 0; font-size: 17px; line-height: 1.4; flex: 1; }
+  .sheet-close {
+    appearance: none; border: 0; background: var(--surface-2); color: var(--ink);
+    width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; flex: none;
+  }
+  .full-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+  .full-list li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 2px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .full-list li span { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .full-list li.hit { font-weight: 800; }
+  .full-list li.hit span { color: var(--accent); }
+  .full-list .act { font-style: normal; font-size: 11px; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 0 6px; margin-left: 6px; white-space: nowrap; }
+  .sheet-memo { font-size: 12.5px; background: var(--surface-2); border-radius: 8px; padding: 8px 10px; margin: 12px 0 0; }
+  .sheet-memo:empty { display: none; }
+  .count-line { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+  .count-line b { color: var(--ink); }
+  .pprice { display: block; font-size: 12px; color: var(--ink); line-height: 1.45; }
+  .pending { display: inline-block; font-size: 11px; font-weight: 700; color: var(--amber); background: var(--amber-soft); border-radius: 6px; padding: 0 6px; margin-left: 4px; vertical-align: 1px; }
+  .more-btn { appearance: none; font: inherit; font-size: 13.5px; font-weight: 700; color: var(--accent); background: var(--surface); border: 1.5px dashed var(--line); border-radius: 10px; min-height: 44px; cursor: pointer; }
+  .hit-count { font-size: 12.5px; color: var(--muted); margin: 0 2px; }
+  .price-list { margin: 4px 0 10px; padding: 8px 10px; background: var(--surface-2); border-radius: 8px; font-size: 13px; list-style: none; display: grid; gap: 2px; }
+  .price-list .pnote { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .pending-note { font-size: 13px; color: var(--amber); background: var(--amber-soft); border-radius: 8px; padding: 10px 12px; margin: 0; }
+  .unit-price { display: inline-block; font-size: 11.5px; color: var(--muted); margin-left: 6px; }
+  .copy-row { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
+  .copy-btn { appearance: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--accent); background: var(--surface); border: 1.5px solid var(--accent); border-radius: 999px; min-height: 36px; padding: 4px 14px; cursor: pointer; }
+  .copy-done { font-size: 12px; color: var(--accent); }
+  .sheet-attrs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+  .sheet-attrs:empty { display: none; }
+  .attr { font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 1px 8px; }
+  .sheet-note { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+  /* ---------- 日焼け止めページ ---------- */
+  .page-link { margin: 8px 0 0 !important; font-size: 13.5px; }
+  .page-link a, footer.note a, .current-box a { color: var(--accent); font-weight: 700; }
+  .card-attrs { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 6px 0 4px; }
+  .attr-sub { color: var(--ink); background: var(--surface-2); font-weight: 500; }
+  .current-box { border: 1.5px solid var(--accent); background: var(--accent-soft); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; }
+  .current-label { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 800; color: var(--accent); margin-bottom: 2px; }
+  .clear-btn { appearance: none; font: inherit; font-size: 12px; font-weight: 700; color: var(--accent); background: var(--surface); border: 1px solid var(--accent); border-radius: 999px; padding: 2px 12px; cursor: pointer; min-height: 30px; }
+  .chip-empty { border-style: dashed; color: var(--muted); }
+  .chip-empty[aria-pressed="true"] { color: var(--accent-ink); }
+  .target-guide div + div { margin-top: 6px; }
+  .warn { color: var(--amber); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="app-name">成分さがし ／ 日焼け止め</p>
+    <h1>日焼け止めを、表示と成分で絞りこむ</h1>
+    <p>形状・使用部位・SPFなどの条件を選ぶと、合う製品が下に並びます。入力した内容はこの端末の中だけで処理し、外部には送信しません。</p>
+    <p class="page-link"><a href="index.html">‹ スキンケアの成分さがしへ</a></p>
+    <div class="sample-banner">実在製品のデータ（2026-11-18〜24確認。リニューアルで変わることがあります）。SPF・PAやウォータープルーフはメーカー公式の表示に基づきます。</div>
+    <p class="count-line" id="countLine"></p>
+  </header>
+
+  <!-- ============ 入力 ============ -->
+  <section class="panel" aria-label="入力">
+    <h2>条件</h2>
+    <p class="lead">タップで選びます。文字入力は製品の検索だけです。</p>
+
+    <fieldset>
+      <legend>今使っている日焼け止め<span class="opt">任意・1つ</span></legend>
+      <span class="sub-label">よく使われる候補</span>
+      <div class="chips" id="quickChips"></div>
+      <label class="sub-label" for="productSearch">製品名・メーカーで検索</label>
+      <div class="search-box">
+        <input type="search" id="productSearch" placeholder="製品名・メーカー（例：アネッサ）" autocomplete="off" enterkeyhint="search" />
+      </div>
+      <div class="product-list" id="productList"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>形状</legend>
+      <div class="chips" id="formChips"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>使用部位</legend>
+      <div class="chips" id="areaChips"></div>
+      <p class="muted-note" style="margin:6px 0 0;font-size:12px">「顔用」「体用」を選ぶと、「顔・体両用」の製品も含めます。</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>表示・成分<span class="opt">複数選択可</span></legend>
+      <div class="chips" id="featChips"></div>
+      <div class="target-guide" id="featGuide" aria-live="polite"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>SPFの下限</legend>
+      <div class="chips" id="spfChips"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>価格の上限<span class="opt">代表価格（税込の目安）で判定</span></legend>
+      <div class="chips" id="capChips"></div>
+      <p class="muted-note" id="capNote" style="margin:6px 0 0;font-size:12px"></p>
+    </fieldset>
+  </section>
+
+  <!-- ============ 結果 ============ -->
+  <section class="panel" aria-label="結果" aria-live="polite">
+    <h2>条件に合う製品</h2>
+    <p class="lead">選ぶたびに自動で更新されます。カードをタップすると全成分が見られます。</p>
+    <div id="currentBox"></div>
+    <div class="cond-summary" id="condSummary"></div>
+    <div id="resultArea"></div>
+  </section>
+
+  <footer class="note">
+    <strong>※ 実在製品のデータ（2026-11-18〜24確認。リニューアルで変わることがあります）。</strong>比べやすくするため、成分名は化粧品の一般的な表示名にそろえています（例：精製水→水、1,3-ブチレングリコール→BG）。最新の内容は製品パッケージでご確認ください。<br />
+    ※ SPF・PAやウォータープルーフはメーカー公式の表示に基づきます。<br />
+    ※ 「ノンケミカル」は、登録している全成分に紫外線吸収剤（下の一覧）が含まれていない製品です。成分調査中の製品は判定していません。<br />
+    ※ 価格は税込の目安です（掲載時点のもの。一部は税抜・参考価格の表記があります）。<br />
+    ※ 表示と成分の事実を並べたもので、製品の効果・効能を示すものではありません。肌に合うかどうかは個人差があります。<br />
+    <span id="absorberList"></span><br />
+    <a href="index.html">‹ スキンケアの成分さがしへ</a>
+  </footer>
+</div>
+
+<!-- 全成分シート -->
+<dialog class="sheet" id="sheet" aria-labelledby="sheetTitle">
+  <div class="sheet-inner">
+    <div class="sheet-head">
+      <div style="flex:1">
+        <span class="ptype" id="sheetType"></span>
+        <h4 id="sheetTitle"></h4>
+        <div class="pbrand" id="sheetBrand"></div>
+      </div>
+      <button type="button" class="sheet-close" id="sheetClose" aria-label="閉じる">×</button>
+    </div>
+    <div class="copy-row">
+      <button type="button" class="copy-btn" id="copyBtn">商品名をコピー</button>
+      <span class="copy-done" id="copyDone" aria-live="polite"></span>
+    </div>
+    <p class="sheet-attrs" id="sheetAttrs"></p>
+    <div id="sheetPrices"></div>
+    <ul class="full-list" id="sheetList"></ul>
+    <p class="sheet-memo" id="sheetMemo"></p>
+    <p class="sheet-note">印の付いた成分は紫外線吸収剤（このページの判定に使う成分）です。成分名は一般的な表示名にそろえています。</p>
+  </div>
+</dialog>
+
+<!-- 製品データは products.js（本体ページと日焼け止めページで共通） -->
+<script src="products.js"></script>
+<!-- =====================================================================
+     日焼け止めページの設定（ここは後から調整可）
+     ===================================================================== -->
+<script>
+// 「よく使われる候補」チップ（製品名と、メーカー欄に含まれる語で指定）
+const SUN_QUICK = [
+  { label: "アネッサ スキンケアミルク", name: "パーフェクトＵＶ スキンケアミルク ＮＡ", maker: "アネッサ" },
+  { label: "ビオレUV アクアリッチ", name: "ＵＶ アクアリッチ ウォータリージェル", maker: "ビオレ" },
+  { label: "スキンアクア スーパーモイスチャージェル", name: "スーパーモイスチャージェル", maker: "スキンアクア" },
+  { label: "ニベアUV ウォータージェルEX", name: "ニベアＵＶ ウォータージェルＥＸ", maker: "ニベア" },
+  { label: "ラ ロッシュ ポゼ UVイデア XL", name: "UVイデア XL", maker: "ラ ロッシュ ポゼ" },
+  { label: "キュレル UVエッセンス", name: "潤浸保湿 ＵＶエッセンス ５０ｇ", maker: "キュレル" },
+  { label: "アリィー ジェルUV EX", name: "アリィー クロノビューティ ジェルUV EX", maker: "アリィー" }
+];
+// 形状の選択肢。データの形状（form）が「チューブ・ポンプ」のように2つ書かれている製品は、どちらを選んでも含める
+const SUN_FORMS = ["チューブ", "ボトル", "ポンプ", "スティック", "スプレー・ミスト", "ジャー", "その他"];
+const SUN_AREAS = ["顔用", "体用", "顔・体両用"];
+const SUN_SPF = [{ label: "指定なし", value: null }, { label: "SPF30以上", value: 30 }, { label: "SPF50以上", value: 50 }];
+const PRICE_CAPS = [
+  { label: "上限なし", value: null }, { label: "〜1,000円", value: 1000 }, { label: "〜3,000円", value: 3000 },
+  { label: "〜5,000円", value: 5000 }, { label: "〜10,000円", value: 10000 }
+];
+// 紫外線吸収剤として扱う成分（「ノンケミカル」の判定に使う）。名前の一部が一致すれば該当とする。
+// 医薬部外品の表示名・英語のINCI名・英語名のカタカナ書きも含める（"paramethoxysilicate" は、海外販売店の英訳で methoxycinnamate が誤記されている製品があるため）
+const UV_ABSORBERS = [
+  { label: "メトキシケイヒ酸エチルヘキシル（パラメトキシケイ皮酸オクチルなど）", keys: ["メトキシケイヒ酸", "メトキシケイ皮酸", "methoxycinnamate", "octinoxate", "paramethoxysilicate", "メトキシシンナメート", "オクチノキサート"] },
+  { label: "オクトクリレン", keys: ["オクトクリレン", "octocrylene"] },
+  { label: "サリチル酸エチルヘキシル（サリチル酸オクチルなど）", keys: ["サリチル酸エチルヘキシル", "サリチル酸2エチルヘキシル", "サリチル酸オクチル", "ethylhexylsalicylate", "octylsalicylate", "octisalate", "エチルヘキシルサリチレート", "オクチルサリチレート", "オクチサレート"] },
+  { label: "ホモサレート", keys: ["ホモサレート", "ホモメンチルサリチレート", "homosalate"] },
+  { label: "t-ブチルメトキシジベンゾイルメタン", keys: ["ジベンゾイルメタン", "dibenzoylmethane", "avobenzone", "アボベンゾン"] },
+  { label: "ビスエチルヘキシルオキシフェノールメトキシフェニルトリアジン", keys: ["メトキシフェニルトリアジン", "エチルヘキシルオキシ2ヒドロキシフェニル", "methoxyphenyltriazine", "ethylhexyloxy2hydroxyphenyl"] },
+  { label: "エチルヘキシルトリアゾン", keys: ["エチルヘキシルトリアゾン", "オクチルトリアゾン", "エチルヘキシルオキシカルボニルアニリノ", "ethylhexyltriazone", "ethylhexyloxycarbonylanilino"] },
+  { label: "フェニルベンズイミダゾールスルホン酸", keys: ["ベンズイミダゾールスルホン酸", "benzimidazolesulfonicacid"] },
+  { label: "ジエチルアミノヒドロキシベンゾイル安息香酸ヘキシル", keys: ["ヒドロキシベンゾイル安息香酸ヘキシル", "hydroxybenzoylhexylbenzoate", "hydroxybenzoylbenzoicacidhexyl", "ヒドロキシベンゾイルヘキシルベンゾエート"] },
+  { label: "ポリシリコーン-15", keys: ["ポリシリコーン15", "ジメチコジエチルベンザルマロネート", "polysilicone15"] },
+  { label: "メチレンビスベンゾトリアゾリルテトラメチルブチルフェノール", keys: ["ベンゾトリアゾリルテトラメチルブチルフェノール", "benzotriazolyltetramethylbutylphenol"] },
+  { label: "ジメチルPABAエチルヘキシル", keys: ["ジメチルpaba", "ジメチルパバ", "dimethylpaba"] },
+  { label: "オキシベンゾン類（ベンゾフェノン類）", keys: ["オキシベンゾン", "ベンゾフェノン", "oxybenzone", "benzophenone"] },
+  { label: "ドロメトリゾールトリシロキサン", keys: ["ドロメトリゾールトリシロキサン", "ドロメトリプルトリシロキサン", "drometrizoletrisiloxane"] },
+  { label: "テレフタリリデンジカンフルスルホン酸", keys: ["テレフタリリデンジカンフルスルホン酸", "テレフタリリデンジキャンパー", "terephthalylidenedicamphorsulfonicacid"] },
+  { label: "ジエチルヘキシルブタミドトリアゾン", keys: ["ブタミドトリアゾン", "butamidotriazone"] },
+  { label: "トリスビフェニルトリアジン", keys: ["トリスビフェニルトリアジン", "trisbiphenyltriazine"] },
+  { label: "ベンゾトリアゾリルドデシルp-クレゾール", keys: ["ベンゾトリアゾリルドデシル", "benzotriazolyldodecyl"] }
+];
+// 「石けんで落とせる」は、製品データの soap（公式の表示を記録したもの）がある製品だけ
+const SOAP_NOTE = "製品データに「石けんで落とせる」「洗顔料で落とせる」などの公式表示の記録（soap）がある製品だけを出します。ウォータープルーフかどうかからは判断しません。";
+</script>
+
+<script>
+(function () {
+  "use strict";
+  const $ = function (id) { return document.getElementById(id); };
+  const esc = function (s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  };
+  const nfkc = function (s) { s = String(s || ""); return s.normalize ? s.normalize("NFKC") : s; };
+  const normQ = function (s) { return nfkc(s).toLowerCase().replace(/\s+/g, ""); };
+  // 成分名の照合用：空白・ハイフン・長音・かっこ・カンマなどを外す
+  const normIng = function (s) { return nfkc(s).toLowerCase().replace(/[\s\-‐‑–—−ー・,，、()（）\[\]［］{}｛｝'’]/g, ""); };
+  UV_ABSORBERS.forEach(function (a) { a._keys = a.keys.map(normIng); });
+  const isAbsorber = function (n) {
+    const x = normIng(n);
+    return UV_ABSORBERS.some(function (a) { return a._keys.some(function (k) { return x.indexOf(k) !== -1; }); });
+  };
+
+  // 対象製品：種類が日焼け止め、または spf 属性がある製品（ファンデーションは除く）
+  const ALL = PRODUCTS.map(function (p, i) {
+    p._id = "p" + i;
+    p.ingredients = p.ingredients || [];
+    p.prices = p.prices || [];
+    p._hasIng = p.ingredients.length > 0;
+    return p;
+  });
+  const SUN = ALL.filter(function (p) { return p.type !== "ファンデーション" && (p.type === "日焼け止め" || !!p.spf); });
+  const BY_ID = {}; SUN.forEach(function (p) { BY_ID[p._id] = p; });
+  SUN.forEach(function (p) {
+    p._abs = p._hasIng ? p.ingredients.filter(isAbsorber) : [];
+    p._nonChem = p._hasIng && p._abs.length === 0;
+    const m = String(p.spf || "").match(/SPF\s*(\d+)/i);
+    p._spfNum = m ? parseInt(m[1], 10) : null;
+    p._forms = p.form ? (p.form === "スプレー・ミスト" ? [p.form] : String(p.form).split("・")) : [];
+  });
+  const TYPE_ORDER = ["日焼け止め", "化粧下地", "フェイスパウダー", "乳液", "クリーム", "美容液", "化粧水", "その他", "種類未判定"];
+  SUN.sort(function (a, b) {
+    const ta = TYPE_ORDER.indexOf(a.type), tb = TYPE_ORDER.indexOf(b.type);
+    return (ta === -1 ? 99 : ta) - (tb === -1 ? 99 : tb) || (parseInt(a._id.slice(1), 10) - parseInt(b._id.slice(1), 10));
+  });
+
+  const PAGE = 30;
+  const state = { current: null, form: null, area: null, feats: {}, spf: null, cap: null, query: "", limit: PAGE, plimit: PAGE };
+
+  const brandOf = function (p) { return [p.maker, p.series].filter(function (v) { return v; }).join(" ／ "); };
+  const priceText = function (p) {
+    const v = p.prices[0]; if (!v) return "";
+    return [v.price, v.volume].filter(function (x) { return x; }).join(" ／ ");
+  };
+  const repPrice = function (p) {
+    const v = p.prices[0];
+    if (!v || !v.price) return null;
+    if (String(v.price).indexOf("円") === -1) return null;
+    const m = String(v.price).match(/(\d[\d,]*)/);
+    if (!m) return null;
+    const n = parseInt(m[1].replace(/,/g, ""), 10);
+    return isFinite(n) && n > 0 ? n : null;
+  };
+  const withinCap = function (p) {
+    if (state.cap == null) return true;
+    const n = repPrice(p);
+    return n != null && n <= state.cap;
+  };
+  const unitPrice = function (p) {
+    const v = p.prices[0];
+    if (!v || !v.price || !v.volume) return "";
+    if (/〜|~|税抜/.test(v.price)) return "";
+    let vol = nfkc(v.volume).replace(/\([^)]*\)/g, "").trim();
+    const m = vol.match(/^(\d+(?:\.\d+)?)\s*(ml|g|cc)$/i);
+    if (!m) return "";
+    const amount = parseFloat(m[1]);
+    const yen = repPrice(p);
+    if (!yen || !amount) return "";
+    const per = yen / amount;
+    const txt = per >= 1 ? String(Math.round(per)) : (Math.round(per * 10) / 10).toFixed(1);
+    return "約" + txt + "円/" + (m[2].toLowerCase() === "g" ? "g" : "ml");
+  };
+  const unitBadge = function (p) { const u = unitPrice(p); return u ? '<span class="unit-price">' + esc(u) + "</span>" : ""; };
+  const copyName = function (p) {
+    const parts = [p.maker, p.series, p.name].filter(function (x) { return x; });
+    const out = [];
+    parts.forEach(function (x, i) { if (parts.slice(i + 1).join(" ").indexOf(x) === -1) out.push(x); });
+    return out.join(" ").replace(/\s*(…|\.\.\.)+\s*$/, "").trim();
+  };
+  const wpText = function (p) { return p.waterproof ? (p.waterproof === true ? "ウォータープルーフ" : String(p.waterproof)) : ""; };
+  const pendingBadge = function (p) { return p._hasIng ? "" : '<span class="pending">成分調査中</span>'; };
+  const attrTags = function (p) {
+    const a = [];
+    a.push('<span class="attr">' + esc(p.spf || "SPF表示の記録なし") + "</span>");
+    if (p.waterproof) a.push('<span class="attr">' + esc(wpText(p)) + "</span>");
+    a.push('<span class="attr attr-sub">形状：' + esc(p.form || "記録なし") + "</span>");
+    a.push('<span class="attr attr-sub">使用部位：' + esc(p.area || "記録なし") + "</span>");
+    if (p.soap) a.push('<span class="attr">' + esc(p.soap === true ? "石けんで落とせる（表示）" : p.soap) + "</span>");
+    return a.join("");
+  };
+
+  // ---------- 判定 ----------
+  const FEATS = [
+    { id: "nonchem", label: "ノンケミカル", test: function (p) { return p._nonChem; },
+      guide: "登録している全成分に、紫外線吸収剤（ページ下の一覧）が1つも含まれていない製品です。成分調査中の製品は判定しないため、このチップを選ぶと除きます。" },
+    { id: "wp", label: "ウォータープルーフ", test: function (p) { return !!p.waterproof; },
+      guide: "メーカー公式のウォータープルーフ表示（スーパーウォータープルーフ・UV耐水性★の表示を含む）の記録がある製品です。" },
+    { id: "soap", label: "石けんで落とせる", test: function (p) { return !!p.soap; }, guide: SOAP_NOTE }
+  ];
+  const SOAP_COUNT = SUN.filter(function (p) { return !!p.soap; }).length;
+
+  function matchForm(p) {
+    if (!state.form) return true;
+    if (!p._forms.length || p.form === "不明") return false;
+    if (state.form === "その他") return p._forms.some(function (f) { return SUN_FORMS.indexOf(f) === -1 || f === "その他"; });
+    return p._forms.indexOf(state.form) !== -1;
+  }
+  // 「顔用」「体用」を選んだときは「顔・体両用」も含める（「顔・首」は顔用として扱う）
+  const AREA_OK = { "顔用": ["顔用", "顔・首", "顔・体両用"], "体用": ["体用", "顔・体両用"], "顔・体両用": ["顔・体両用"] };
+  function matchArea(p) {
+    if (!state.area) return true;
+    return !!p.area && AREA_OK[state.area].indexOf(p.area) !== -1;
+  }
+  function results() {
+    return SUN.filter(function (p) {
+      if (state.current === p._id) return false;
+      if (!matchForm(p) || !matchArea(p)) return false;
+      for (let i = 0; i < FEATS.length; i++) if (state.feats[FEATS[i].id] && !FEATS[i].test(p)) return false;
+      if (state.spf != null && !(p._spfNum != null && p._spfNum >= state.spf)) return false;
+      return withinCap(p);
+    });
+  }
+
+  // ---------- 入力UI ----------
+  function chip(label, pressed, onClick, extra) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip" + (extra ? " " + extra : ""); b.textContent = label;
+    b.setAttribute("aria-pressed", pressed ? "true" : "false");
+    b.addEventListener("click", onClick);
+    return b;
+  }
+  function single(boxId, items, cur, set) {
+    const box = $(boxId); box.innerHTML = "";
+    items.forEach(function (it) {
+      box.appendChild(chip(it.label, cur === it.value, function () { set(it.value); state.limit = PAGE; render(); }));
+    });
+  }
+  const findQuick = function (q) {
+    return SUN.find(function (p) { return p.name === q.name && String(p.maker).indexOf(q.maker) !== -1; });
+  };
+  function setCurrent(id) { state.current = state.current === id ? null : id; state.limit = PAGE; render(); }
+
+  function buildInputs() {
+    const quick = $("quickChips"); quick.innerHTML = "";
+    SUN_QUICK.forEach(function (q) {
+      const p = findQuick(q);
+      if (p) quick.appendChild(chip(q.label, state.current === p._id, function () { setCurrent(p._id); }));
+    });
+    buildProductList();
+    single("formChips", [{ label: "気にしない", value: null }].concat(SUN_FORMS.map(function (f) { return { label: f, value: f }; })), state.form, function (v) { state.form = v; });
+    single("areaChips", [{ label: "気にしない", value: null }].concat(SUN_AREAS.map(function (f) { return { label: f, value: f }; })), state.area, function (v) { state.area = v; });
+    const fb = $("featChips"); fb.innerHTML = "";
+    FEATS.forEach(function (f) {
+      const empty = f.id === "soap" && SOAP_COUNT === 0;
+      fb.appendChild(chip(f.label + (empty ? "（該当なし）" : ""), !!state.feats[f.id], function () {
+        if (state.feats[f.id]) delete state.feats[f.id]; else state.feats[f.id] = true;
+        state.limit = PAGE; render();
+      }, empty ? "chip-empty" : ""));
+    });
+    const on = FEATS.filter(function (f) { return state.feats[f.id]; });
+    $("featGuide").innerHTML = (on.length ? on : FEATS).map(function (f) {
+      const empty = f.id === "soap" && SOAP_COUNT === 0;
+      return "<div><b>" + esc(f.label) + "</b>：" + esc(f.guide) + (empty ? '<br /><span class="warn">該当する製品がまだありません（公式表示の記録がある製品が未登録のため）。</span>' : "") + "</div>";
+    }).join("");
+    single("spfChips", SUN_SPF, state.spf, function (v) { state.spf = v; });
+    single("capChips", PRICE_CAPS, state.cap, function (v) { state.cap = v; });
+    $("capNote").textContent = state.cap == null ? "価格がわからない製品も表示します。" : "結果一覧と製品の検索に適用します。価格がわからない製品は除きます。";
+  }
+
+  function buildProductList() {
+    const box = $("productList"); box.innerHTML = "";
+    const q = normQ(state.query);
+    if (!q) { box.innerHTML = '<p class="no-hit">製品名を入力すると、ここに候補が出ます（日焼け止めページの対象製品から探します）。</p>'; return; }
+    const hits = SUN.filter(function (p) { return [p.name, p.type, p.maker, p.series].some(function (v) { return v && normQ(v).indexOf(q) !== -1; }); });
+    if (!hits.length) { box.innerHTML = '<p class="no-hit">「' + esc(state.query.trim()) + '」に合う製品は見つかりませんでした。</p>'; return; }
+    const shown = hits.slice(0, state.plimit);
+    const cnt = document.createElement("p"); cnt.className = "hit-count";
+    cnt.textContent = hits.length + "件見つかりました" + (hits.length > shown.length ? "（" + shown.length + "件を表示中）" : "");
+    box.appendChild(cnt);
+    shown.forEach(function (p) {
+      const on = state.current === p._id;
+      const row = document.createElement("div");
+      row.className = "product-row" + (on ? " on" : "");
+      row.innerHTML =
+        '<button type="button" class="pick" aria-pressed="' + on + '">' +
+          '<span class="mark" aria-hidden="true">✓</span>' +
+          '<span class="ptype">' + esc(p.type) + '</span>' +
+          '<span><span class="pname">' + esc(p.name) + pendingBadge(p) + '</span>' +
+          (brandOf(p) ? '<span class="pbrand">' + esc(brandOf(p)) + '</span>' : '') +
+          '<span class="pprice">' + esc([p.spf, priceText(p)].filter(function (x) { return x; }).join(" ／ ")) + '</span></span>' +
+        '</button>' +
+        '<button type="button" class="info" aria-label="' + esc(p.name) + 'の詳細を見る">' + (p._hasIng ? "全成分" : "詳細") + '</button>';
+      row.querySelector(".pick").addEventListener("click", function () { setCurrent(p._id); });
+      row.querySelector(".info").addEventListener("click", function () { openSheet(p); });
+      box.appendChild(row);
+    });
+    if (hits.length > shown.length) {
+      const more = document.createElement("button");
+      more.type = "button"; more.className = "more-btn";
+      more.textContent = "さらに表示（残り " + (hits.length - shown.length) + "件）";
+      more.addEventListener("click", function () { state.plimit += PAGE; buildProductList(); });
+      box.appendChild(more);
+    }
+  }
+
+  // ---------- 結果 ----------
+  function card(p) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "card";
+    b.innerHTML =
+      '<div class="card-head"><span class="cname">' + esc(p.name) + pendingBadge(p) + '</span><span class="ptype">' + esc(p.type) + '</span></div>' +
+      (brandOf(p) ? '<div class="pbrand">' + esc(brandOf(p)) + '</div>' : '') +
+      '<div class="card-attrs">' + attrTags(p) + '</div>' +
+      '<div class="pprice">' + (priceText(p) ? esc(priceText(p)) + unitBadge(p) : "価格の情報なし") + '</div>' +
+      '<div class="card-foot">' + (p._hasIng ? "全成分を見る ›" : "詳細を見る ›") + '</div>';
+    b.addEventListener("click", function () { openSheet(p); });
+    return b;
+  }
+
+  function renderResults() {
+    const cur = state.current ? BY_ID[state.current] : null;
+    const cb = $("currentBox"); cb.innerHTML = "";
+    if (cur) {
+      const d = document.createElement("div");
+      d.className = "current-box";
+      d.innerHTML = '<div class="current-label">今使っているもの<button type="button" class="clear-btn" aria-label="今使っているものを外す">外す</button></div>' +
+        '<div class="cname">' + esc(cur.name) + '</div>' +
+        (brandOf(cur) ? '<div class="pbrand">' + esc(brandOf(cur)) + '</div>' : '') +
+        '<div class="card-attrs">' + attrTags(cur) + '</div>' +
+        '<div class="muted-note" style="font-size:12px;margin-top:4px">この製品は下の一覧から除いています。' +
+        '<a href="#" class="see-ing">全成分を見る</a></div>';
+      d.querySelector(".clear-btn").addEventListener("click", function () { setCurrent(cur._id); });
+      d.querySelector(".see-ing").addEventListener("click", function (e) { e.preventDefault(); openSheet(cur); });
+      cb.appendChild(d);
+    }
+    const tags = [];
+    tags.push("形状：" + (state.form || "気にしない"));
+    tags.push("使用部位：" + (state.area || "気にしない"));
+    FEATS.forEach(function (f) { if (state.feats[f.id]) tags.push(f.label); });
+    if (state.spf != null) tags.push("SPF" + state.spf + "以上");
+    if (state.cap != null) tags.push("価格の上限：〜" + state.cap.toLocaleString() + "円");
+    $("condSummary").innerHTML = tags.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("");
+
+    const area = $("resultArea"); area.innerHTML = "";
+    const hits = results();
+    if (state.feats.soap && SOAP_COUNT === 0) {
+      area.innerHTML = '<div class="empty-note">「石けんで落とせる」の公式表示の記録がある製品は、まだ登録されていません。このチップを外すと、ほかの条件に合う製品が表示されます。</div>';
+      return;
+    }
+    if (!hits.length) {
+      area.innerHTML = '<div class="empty-note">条件に合う製品はデータ内にありませんでした。条件をゆるめると見つかることがあります。</div>';
+      return;
+    }
+    const shown = hits.slice(0, state.limit);
+    const cnt = document.createElement("p"); cnt.className = "hit-count"; cnt.style.margin = "0 2px 8px";
+    cnt.textContent = hits.length + "件" + (hits.length > shown.length ? "（" + shown.length + "件を表示中）" : "");
+    area.appendChild(cnt);
+    shown.forEach(function (p) { area.appendChild(card(p)); });
+    if (hits.length > shown.length) {
+      const more = document.createElement("button");
+      more.type = "button"; more.className = "more-btn"; more.style.width = "100%";
+      more.textContent = "さらに表示（残り " + (hits.length - shown.length) + "件）";
+      more.addEventListener("click", function () { state.limit += PAGE; renderResults(); });
+      area.appendChild(more);
+    }
+  }
+
+  // ---------- 全成分シート ----------
+  const sheet = $("sheet");
+  let sheetProduct = null;
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    return new Promise(function (resolve, reject) {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.setAttribute("readonly", "");
+      ta.style.position = "fixed"; ta.style.opacity = "0";
+      sheet.appendChild(ta); ta.select();
+      try { document.execCommand("copy") ? resolve() : reject(); } catch (e) { reject(e); }
+      sheet.removeChild(ta);
+    });
+  }
+  $("copyBtn").addEventListener("click", function () {
+    if (!sheetProduct) return;
+    const text = copyName(sheetProduct);
+    copyText(text).then(function () { $("copyDone").textContent = "コピーしました"; },
+      function () { $("copyDone").textContent = "コピーできませんでした：" + text; });
+  });
+  function openSheet(p) {
+    $("sheetType").textContent = p.type;
+    $("sheetTitle").textContent = p.name;
+    $("sheetBrand").textContent = brandOf(p);
+    $("sheetMemo").textContent = p.memo ? "メモ：" + p.memo : "";
+    $("sheetPrices").innerHTML = p.prices.length
+      ? '<ul class="price-list">' + p.prices.map(function (v, i) {
+          return "<li>" + esc(v.price || "価格不明") + " ／ " + esc(v.volume || "容量不明") + (i === 0 ? unitBadge(p) : "") + "</li>";
+        }).join("") + '<li class="pnote">価格は税込の目安です（掲載時点）。1ml／1gあたりの価格は先頭の価格・容量で計算しています。</li></ul>'
+      : '<ul class="price-list"><li>価格・容量の情報はありません</li></ul>';
+    sheetProduct = p;
+    $("sheetAttrs").innerHTML = (p.spf ? '<span class="attr">' + esc(p.spf) + '</span>' : "") +
+      (p.waterproof ? '<span class="attr">' + esc(wpText(p)) + '</span>' : "") +
+      (p.form ? '<span class="attr">形状：' + esc(p.form) + '</span>' : "") +
+      (p.area ? '<span class="attr">使用部位：' + esc(p.area) + '</span>' : "") +
+      (p._hasIng ? '<span class="attr">' + (p._abs && p._abs.length ? "紫外線吸収剤 " + p._abs.length + "成分" : "紫外線吸収剤なし（ノンケミカル）") + '</span>' : "");
+    $("copyDone").textContent = "";
+    $("sheetList").innerHTML = p._hasIng
+      ? p.ingredients.map(function (n) {
+          const abs = isAbsorber(n);
+          const act = p.actives && p.actives.indexOf(n) !== -1 ? '<i class="act">有効成分</i>' : "";
+          return '<li class="' + (abs ? "hit" : "") + '"><div>' + esc(n) + act + "</div>" + (abs ? "<span>紫外線吸収剤</span>" : "") + "</li>";
+        }).join("")
+      : '<li style="border:0;padding:0"><p class="pending-note">成分調査中です。全成分はまだ登録されていません。</p></li>';
+    if (typeof sheet.showModal === "function") sheet.showModal(); else sheet.setAttribute("open", "");
+  }
+  function closeSheet() { if (typeof sheet.close === "function") sheet.close(); else sheet.removeAttribute("open"); }
+  $("sheetClose").addEventListener("click", closeSheet);
+  sheet.addEventListener("click", function (e) { if (e.target === sheet) closeSheet(); });
+
+  // ---------- 件数・吸収剤一覧 ----------
+  (function () {
+    const withIng = SUN.filter(function (p) { return p._hasIng; }).length;
+    $("countLine").innerHTML = "対象製品 <b>" + SUN.length.toLocaleString() + "件</b>（種類が日焼け止めの製品と、SPF表示のある製品。ファンデーションは除く。うち成分登録済み <b>" +
+      withIng.toLocaleString() + "件</b>）";
+    $("absorberList").textContent = "※ 紫外線吸収剤として扱う成分：" + UV_ABSORBERS.map(function (a) { return a.label; }).join("、") + "。";
+  })();
+
+  function render() { buildInputs(); renderResults(); }
+  $("productSearch").addEventListener("input", function (e) { state.query = e.target.value; state.plimit = PAGE; buildProductList(); });
+  render();
+})();
+</script>
+</body>
+</html>
