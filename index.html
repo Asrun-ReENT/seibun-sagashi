@@ -821,7 +821,8 @@ const BASE_INGS = ["水", "BG", "DPG", "PG", "エタノール", "変性アルコ
     $("sheetAttrs").innerHTML = (p.spf ? '<span class="attr">' + esc(p.spf) + '</span>' : "") +
       (p.waterproof ? '<span class="attr">' + (p.waterproof === true ? "ウォータープルーフ" : esc(p.waterproof)) + '</span>' : "") +
       (p.form ? '<span class="attr">形状：' + esc(p.form) + '</span>' : "") +
-      (p.area ? '<span class="attr">使用部位：' + esc(p.area) + '</span>' : "");
+      (p.area ? '<span class="attr">使用部位：' + esc(p.area) + '</span>' : "") +
+      (p.soap ? '<span class="attr">' + esc(p.soap === true ? "石けんで落とせる（表示）" : p.soap) + '</span>' : "");
     $("copyDone").textContent = "";
     $("sheetList").innerHTML = p._hasIng
       ? p.ingredients.map(function (n) {

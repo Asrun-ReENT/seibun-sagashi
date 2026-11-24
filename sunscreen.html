@@ -365,6 +365,8 @@ const UV_ABSORBERS = [
   { label: "トリスビフェニルトリアジン", keys: ["トリスビフェニルトリアジン", "trisbiphenyltriazine"] },
   { label: "ベンゾトリアゾリルドデシルp-クレゾール", keys: ["ベンゾトリアゾリルドデシル", "benzotriazolyldodecyl"] }
 ];
+// 名前の一部が吸収剤と重なるが、紫外線吸収剤として扱わない成分（サリチル酸ブチルオクチル＝ブチルオクチルサリチレートなど）
+const UV_NOT_ABSORBERS = ["サリチル酸ブチルオクチル", "ブチルオクチルサリチレート", "butyloctylsalicylate"];
 // 「石けんで落とせる」は、製品データの soap（公式の表示を記録したもの）がある製品だけ
 const SOAP_NOTE = "製品データに「石けんで落とせる」「洗顔料で落とせる」などの公式表示の記録（soap）がある製品だけを出します。ウォータープルーフかどうかからは判断しません。";
 </script>
@@ -383,8 +385,10 @@ const SOAP_NOTE = "製品データに「石けんで落とせる」「洗顔料�
   // 成分名の照合用：空白・ハイフン・長音・かっこ・カンマなどを外す
   const normIng = function (s) { return nfkc(s).toLowerCase().replace(/[\s\-‐‑–—−ー・,，、()（）\[\]［］{}｛｝'’]/g, ""); };
   UV_ABSORBERS.forEach(function (a) { a._keys = a.keys.map(normIng); });
+  const NOT_ABSORBER = UV_NOT_ABSORBERS.map(normIng);
   const isAbsorber = function (n) {
     const x = normIng(n);
+    if (NOT_ABSORBER.some(function (k) { return x.indexOf(k) !== -1; })) return false;
     return UV_ABSORBERS.some(function (a) { return a._keys.some(function (k) { return x.indexOf(k) !== -1; }); });
   };
 
@@ -677,6 +681,7 @@ const SOAP_NOTE = "製品データに「石けんで落とせる」「洗顔料�
       (p.waterproof ? '<span class="attr">' + esc(wpText(p)) + '</span>' : "") +
       (p.form ? '<span class="attr">形状：' + esc(p.form) + '</span>' : "") +
       (p.area ? '<span class="attr">使用部位：' + esc(p.area) + '</span>' : "") +
+      (p.soap ? '<span class="attr">' + esc(p.soap === true ? "石けんで落とせる（表示）" : p.soap) + '</span>' : "") +
       (p._hasIng ? '<span class="attr">' + (p._abs && p._abs.length ? "紫外線吸収剤 " + p._abs.length + "成分" : "紫外線吸収剤なし（ノンケミカル）") + '</span>' : "");
     $("copyDone").textContent = "";
     $("sheetList").innerHTML = p._hasIng
