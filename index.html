@@ -133,6 +133,11 @@
   .result-block:last-child { margin-bottom: 0; }
   .result-block h3 { font-size: 15px; font-weight: 800; margin: 0 0 2px; display: flex; align-items: center; gap: 8px; }
   .dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .dot-bad { background: var(--rose); border-radius: 2px; }
+  .ing-chip.bad { background: var(--rose-soft); color: var(--rose); }
+  .bad-note { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+  .bad-warn { font-size: 12.5px; color: var(--rose); margin: 0 0 8px; font-weight: 600; }
+  .excl-note { font-size: 12.5px; color: var(--rose); background: var(--rose-soft); border-radius: 8px; padding: 6px 10px; margin: 0 0 8px; }
   .dot-missing { background: var(--rose); } .dot-overlap { background: var(--amber); } .dot-rec { background: var(--accent); }
   .result-block .sub { margin: 0 0 10px; font-size: 12.5px; color: var(--muted); }
 
@@ -269,6 +274,24 @@
         <div class="selected-chips" id="selectedChips"></div>
       </div>
     </fieldset>
+
+    <fieldset>
+      <legend>合わなかった製品<span class="opt">任意・複数選択可</span></legend>
+      <p class="muted-note" style="margin:0 0 8px;font-size:12.5px">選ぶと、上の「今使っている製品」と成分を比べて、合わない可能性のある成分を探します。比べるには成分が必要なため、成分登録済みの製品だけが選べます。</p>
+      <span class="sub-label">よく使われる候補</span>
+      <div class="chips" id="badQuickChips"></div>
+
+      <label class="sub-label" for="badSearch">製品名・メーカー・シリーズで検索</label>
+      <div class="search-box">
+        <input type="search" id="badSearch" placeholder="合わなかった製品の名前（例：化粧水）" autocomplete="off" enterkeyhint="search" />
+      </div>
+      <div class="product-list" id="badList"></div>
+
+      <div class="selected-box">
+        <span class="sub-label">選択中</span>
+        <div class="selected-chips" id="badSelectedChips"></div>
+      </div>
+    </fieldset>
   </section>
 
   <!-- ============ 結果 ============ -->
@@ -276,6 +299,12 @@
     <h2>成分で見た結果</h2>
     <p class="lead">選ぶたびに自動で更新されます。</p>
     <div class="cond-summary" id="condSummary"></div>
+
+    <div class="result-block">
+      <h3><span class="dot dot-bad"></span>合わない可能性のある成分</h3>
+      <p class="sub">「合わなかった製品」のすべてに入っていて、「今使っている製品」のどれにも入っていない成分（水・BG・防腐剤・香料などのベースになる成分は除く）。</p>
+      <div id="badArea"></div>
+    </div>
 
     <div class="result-block">
       <h3><span class="dot dot-missing"></span>足りていない成分</h3>
@@ -392,7 +421,7 @@ const TYPE_ORDER = ["化粧水", "美容液", "乳液", "クリーム", "日焼�
 const REC_TYPES = ["化粧水", "美容液", "乳液", "クリーム"];
 
 // 重なり判定から除く基剤・安定剤など
-const BASE_INGS = ["水", "BG", "DPG", "PG", "エタノール", "変性アルコール", "プロパンジオール", "ペンチレングリコール", "1,2-ヘキサンジオール",
+const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール", "変性アルコール", "プロパンジオール", "ペンチレングリコール", "1,2-ヘキサンジオール",
   "フェノキシエタノール", "メチルパラベン", "エチルパラベン", "プロピルパラベン", "パラベン", "安息香酸Na", "安息香酸塩",
   "クエン酸", "クエン酸Na", "キサンタンガム", "カルボマー", "EDTA-2Na", "エデト酸塩", "水酸化K", "水酸化Na", "香料",
   "エチルヘキシルグリセリン", "カプリリルグリコール", "ピロ亜硫酸Na", "BHT", "トコフェロール"];
@@ -416,7 +445,8 @@ const BASE_INGS = ["水", "BG", "DPG", "PG", "エタノール", "変性アルコ
   });
 
   const PAGE = 30; // 検索結果を一度に出す件数
-  const state = { age: null, skin: {}, concerns: {}, target: "all", products: {}, query: "", limit: PAGE, cap: null };
+  const state = { age: null, skin: {}, concerns: {}, target: "all", products: {}, query: "", limit: PAGE, cap: null,
+                  bad: {}, badQuery: "", badLimit: PAGE, excludeBad: true };
 
   const $ = function (id) { return document.getElementById(id); };
   const esc = function (s) {
@@ -488,6 +518,7 @@ const BASE_INGS = ["水", "BG", "DPG", "PG", "エタノール", "変性アルコ
   };
   const pendingBadge = function (p) { return p._hasIng ? "" : '<span class="pending">成分調査中</span>'; };
   const selectedProducts = function () { return Object.keys(state.products).map(byId).filter(Boolean); };
+  const badProducts = function () { return Object.keys(state.bad).map(byId).filter(Boolean); };
 
   // 登録済み成分 → 所属グループ名
   const ING_TO_GROUPS = {};
@@ -566,6 +597,92 @@ const BASE_INGS = ["水", "BG", "DPG", "PG", "エタノール", "変性アルコ
     }
   }
 
+  // 「合わなかった製品」の入力（成分登録済みの製品だけ）
+  function buildBadInputs() {
+    const quick = $("badQuickChips"); quick.innerHTML = "";
+    PRODUCTS.filter(function (p) { return p.quick && p._hasIng; }).forEach(function (p) {
+      quick.appendChild(chip(p.name, !!state.bad[p._id], function () { toggleBad(p._id); }));
+    });
+    buildBadList();
+    const sel = $("badSelectedChips"); sel.innerHTML = "";
+    const chosen = badProducts();
+    if (chosen.length === 0) {
+      sel.innerHTML = '<span class="muted-note">まだ選ばれていません。</span>';
+    } else {
+      chosen.forEach(function (p) {
+        const span = document.createElement("span");
+        span.className = "sel-chip";
+        span.innerHTML = "【" + esc(p.type) + "】" + esc(p.name) +
+          '<button type="button" aria-label="' + esc(p.name) + 'を外す">×</button>';
+        span.querySelector("button").addEventListener("click", function () { toggleBad(p._id); });
+        sel.appendChild(span);
+      });
+    }
+  }
+
+  function buildBadList() {
+    const box = $("badList"); box.innerHTML = "";
+    const q = normQ(state.badQuery);
+    if (!q) { box.innerHTML = '<p class="no-hit">製品名を入力すると、ここに候補が出ます（成分登録済みの製品だけ）。</p>'; return; }
+    const matched = PRODUCTS.filter(function (p) { return [p.name, p.type, p.maker, p.series].some(function (v) { return v && normQ(v).indexOf(q) !== -1; }); });
+    const hits = matched.filter(function (p) { return p._hasIng; })
+      .sort(function (a, b) { return TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type); });
+    const pending = matched.length - hits.length;
+    if (hits.length === 0) {
+      box.innerHTML = '<p class="no-hit">「' + esc(state.badQuery.trim()) + '」に合う成分登録済みの製品は見つかりませんでした。' +
+        (pending ? "（成分調査中の " + pending + "件は選べません）" : "") + '</p>';
+      return;
+    }
+    const shown = hits.slice(0, state.badLimit);
+    const cnt = document.createElement("p");
+    cnt.className = "hit-count";
+    cnt.textContent = hits.length + "件見つかりました" + (hits.length > shown.length ? "（" + shown.length + "件を表示中）" : "") +
+      (pending ? "／成分調査中の " + pending + "件は選べません" : "");
+    box.appendChild(cnt);
+    shown.forEach(function (p) {
+      const on = !!state.bad[p._id];
+      const row = document.createElement("div");
+      row.className = "product-row" + (on ? " on" : "");
+      row.innerHTML =
+        '<button type="button" class="pick" aria-pressed="' + on + '">' +
+          '<span class="mark" aria-hidden="true">✓</span>' +
+          '<span class="ptype">' + esc(p.type) + '</span>' +
+          '<span><span class="pname">' + esc(p.name) + '</span>' +
+          (brandOf(p) ? '<span class="pbrand">' + esc(brandOf(p)) + '</span>' : '') +
+          (priceText(p) ? '<span class="pprice">' + esc(priceText(p)) + '</span>' : '') + '</span>' +
+        '</button>' +
+        '<button type="button" class="info" aria-label="' + esc(p.name) + 'の全成分を見る">全成分</button>';
+      row.querySelector(".pick").addEventListener("click", function () { toggleBad(p._id); });
+      row.querySelector(".info").addEventListener("click", function () { openSheet(p); });
+      box.appendChild(row);
+    });
+    if (hits.length > shown.length) {
+      const more = document.createElement("button");
+      more.type = "button"; more.className = "more-btn";
+      more.textContent = "さらに表示（残り " + (hits.length - shown.length) + "件）";
+      more.addEventListener("click", function () { state.badLimit += PAGE; buildBadList(); });
+      box.appendChild(more);
+    }
+  }
+
+  // 同じ製品を「今使っている」と「合わなかった」の両方には入れない（後から選んだほうに移す）
+  function toggleBad(id) {
+    if (state.bad[id]) delete state.bad[id]; else { state.bad[id] = true; delete state.products[id]; }
+    render();
+  }
+
+  // 合わない可能性のある成分：合わなかった製品すべてに入っていて、今使っている製品（成分登録済み）のどれにも入っていない成分。
+  // 成分名の比べ方は「重なっている成分」と同じ（登録時にそろえた表示名の完全一致）。ベースの成分は BASE_INGS で除く
+  function suspectIngredients(bad, good) {
+    if (!bad.length) return [];
+    const goodSet = {};
+    good.forEach(function (p) { p.ingredients.forEach(function (n) { goodSet[n] = true; }); });
+    return Array.from(new Set(bad[0].ingredients)).filter(function (n) {
+      if (BASE_INGS.indexOf(n) !== -1 || goodSet[n]) return false;
+      return bad.every(function (p) { return p.ingredients.indexOf(n) !== -1; });
+    });
+  }
+
   function buildProductList() {
     const box = $("productList"); box.innerHTML = "";
     const q = normQ(state.query);
@@ -615,7 +732,7 @@ const BASE_INGS = ["水", "BG", "DPG", "PG", "エタノール", "変性アルコ
   }
 
   function toggleProduct(id) {
-    if (state.products[id]) delete state.products[id]; else state.products[id] = true;
+    if (state.products[id]) delete state.products[id]; else { state.products[id] = true; delete state.bad[id]; }
     render();
   }
 
@@ -672,6 +789,8 @@ const BASE_INGS = ["水", "BG", "DPG", "PG", "エタノール", "変性アルコ
     const analyzable = chosen.filter(function (p) { return p._hasIng; });
     const pendingN = chosen.length - analyzable.length;
     tags.push("使用中 " + chosen.length + "点" + (pendingN ? "（うち成分調査中 " + pendingN + "点）" : ""));
+    const bad = badProducts();
+    if (bad.length) tags.push("合わなかった製品 " + bad.length + "点");
     tags.push("探しているもの：" + tgt.label);
     if (state.cap != null) tags.push("価格の上限：〜" + state.cap.toLocaleString() + "円");
     $("condSummary").innerHTML = tags.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("");
@@ -682,6 +801,40 @@ const BASE_INGS = ["水", "BG", "DPG", "PG", "エタノール", "変性アルコ
       ? '<p class="pending-note" style="margin-bottom:8px">成分調査中の製品（' + pendingN + '点）は、成分が未登録のため比べる対象に含めていません。</p>'
       : "";
     const has = function (n) { return !!counts[n]; };
+
+    // 合わない可能性のある成分
+    const suspects = suspectIngredients(bad, analyzable);
+    const bArea = $("badArea");
+    if (bad.length === 0) {
+      bArea.innerHTML = '<div class="empty-note">「合わなかった製品」を選ぶと、今使っている製品と成分を比べて、合わない可能性のある成分がここに出ます。</div>';
+    } else {
+      let html = "";
+      if (analyzable.length === 0) {
+        html += '<p class="bad-warn">「今使っている製品」（成分登録済み）が選ばれていないため、合わなかった製品' +
+          (bad.length > 1 ? bad.length + "件に共通する" : "に入っている") + '成分を出しています（比べる材料が片側だけです）。</p>';
+      }
+      if (bad.length === 1) {
+        html += '<p class="bad-warn">合わなかった製品が1件だけなので、その製品の成分が広く出ています。目安として弱めに見てください。</p>';
+      }
+      if (suspects.length === 0) {
+        html += '<div class="ok-note">' + (analyzable.length
+          ? "合わなかった製品" + (bad.length > 1 ? "すべて" : "") + "に入っていて、今使っている製品に入っていない成分は見つかりませんでした。"
+          : "共通する成分は見つかりませんでした。") + "</div>";
+      } else {
+        html += '<div class="ing-chips">' + suspects.map(function (n) {
+          const grp = ING_TO_GROUPS[n] ? ING_TO_GROUPS[n][0] + " ／ " : "";
+          return '<span class="ing-chip bad">' + esc(n) + "<small>" + esc(grp) + "合わなかった製品 " + bad.length + "件" +
+            (bad.length > 1 ? "すべて" : "") + "に含まれていました</small></span>";
+        }).join("") + "</div>";
+        html += '<div class="chips" id="excludeChipBox" style="margin-top:10px"></div>';
+      }
+      html += '<p class="bad-note">※ 合わなかった理由は、成分以外（香り・使用感・使い方・その時の肌の状態など）のこともあります。ここに出るのは成分を比べた傾向で、原因を示すものではありません。</p>';
+      bArea.innerHTML = html;
+      const ex = $("excludeChipBox");
+      if (ex) ex.appendChild(chip("合わない可能性のある成分を含む製品を除く", state.excludeBad, function () { state.excludeBad = !state.excludeBad; render(); }));
+    }
+    const excluding = state.excludeBad && suspects.length > 0;
+    const hasSuspect = function (p) { return suspects.some(function (n) { return p.ingredients.indexOf(n) !== -1; }); };
 
     // 足りていない成分（グループ単位）
     const missing = desired.filter(function (d) { return !ING_GROUPS[d.gid].ings.some(has); });
@@ -730,8 +883,9 @@ const BASE_INGS = ["水", "BG", "DPG", "PG", "エタノール", "変性アルコ
     } else if (lookFor.length === 0) {
       rArea.innerHTML = '<div class="ok-note">足りていない成分グループがないため、候補はありません。</div>';
     } else {
+      let excludedN = 0;
       const scored = PRODUCTS
-        .filter(function (p) { return !state.products[p._id]; })
+        .filter(function (p) { return !state.products[p._id] && !state.bad[p._id]; })
         .filter(function (p) { return p._hasIng && REC_TYPES.indexOf(p.type) !== -1; })
         .filter(withinCap)
         .filter(function (p) { return isAll || p.type === state.target; })
@@ -748,14 +902,22 @@ const BASE_INGS = ["水", "BG", "DPG", "PG", "エタノール", "変性アルコ
           return { p: p, covered: covered, ings: ings };
         })
         .filter(function (r) { return r.covered.length > 0; })
+        .filter(function (r) {
+          if (excluding && hasSuspect(r.p)) { excludedN++; return false; }
+          return true;
+        })
         .sort(function (a, b) { return (b.covered.length - a.covered.length) || (b.ings.length - a.ings.length); })
         .slice(0, 3);
 
+      const exclNote = excludedN
+        ? '<p class="excl-note">合わない可能性のある成分を含む ' + excludedN + '件の製品を候補から外しました。</p>' : "";
       if (scored.length === 0) {
-        rArea.innerHTML = '<div class="empty-note">' + (isAll ? "" : esc(tgt.label) + "の中には、") +
+        rArea.innerHTML = exclNote + '<div class="empty-note">' + (isAll ? "" : esc(tgt.label) + "の中には、") +
           "足りていない成分を含む候補がデータ内にありませんでした。" + (isAll ? "" : "「おまかせ」にすると他の種類からも探せます。") +
-          (state.cap != null ? "価格の上限を上げると見つかることがあります。" : "") + "</div>";
+          (state.cap != null ? "価格の上限を上げると見つかることがあります。" : "") +
+          (excludedN ? "「合わない可能性のある成分を含む製品を除く」を外すと、外した製品も候補に戻ります。" : "") + "</div>";
       } else {
+        if (exclNote) rArea.insertAdjacentHTML("beforeend", exclNote);
         scored.forEach(function (r, i) {
           const groupsTxt = r.covered.map(function (d) { return ING_GROUPS[d.gid].label; }).join("・");
           rArea.appendChild(card(r.p, '<span class="rank">' + (i + 1) + "位</span>",
@@ -845,8 +1007,9 @@ const BASE_INGS = ["水", "BG", "DPG", "PG", "エタノール", "変性アルコ
   })();
 
   // ---------- 起動 ----------
-  function render() { buildInputs(); renderResults(); }
+  function render() { buildInputs(); buildBadInputs(); renderResults(); }
   $("productSearch").addEventListener("input", function (e) { state.query = e.target.value; state.limit = PAGE; buildProductList(); });
+  $("badSearch").addEventListener("input", function (e) { state.badQuery = e.target.value; state.badLimit = PAGE; buildBadList(); });
   render();
 })();
 </script>
