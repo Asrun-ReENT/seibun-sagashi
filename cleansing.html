@@ -263,7 +263,7 @@
     </fieldset>
 
     <fieldset>
-      <legend>剤型</legend>
+      <legend>剤型<span class="opt">複数選択可</span></legend>
       <div class="chips" id="texChips"></div>
       <p class="muted-note" id="texNote" style="margin:6px 0 0;font-size:12px"></p>
     </fieldset>
@@ -391,7 +391,7 @@ const PRICE_CAPS = [
   });
 
   const PAGE = 30;
-  const state = { current: null, issues: {}, tex: null, cap: null, query: "", limit: PAGE, plimit: PAGE };
+  const state = { current: null, issues: {}, tex: {}, cap: null, query: "", limit: PAGE, plimit: PAGE };
 
   const brandOf = function (p) { return [p.maker, p.series].filter(function (v) { return v; }).join(" ／ "); };
   const priceText = function (p) { const v = p.prices[0]; if (!v) return ""; return [v.price, v.volume].filter(function (x) { return x; }).join(" ／ "); };
@@ -453,10 +453,12 @@ const PRICE_CAPS = [
       sort: function (p) { return HEAVY.indexOf(p.texture) !== -1 ? 1 : 0; } }
   ];
 
+  // 選んだ剤型（何も選ばなければ絞り込みなし。選んだもののどれかに合えば残す）
+  const texSel = function () { return TEXTURES.filter(function (t) { return state.tex[t]; }); };
   function baseList() {
     return CL.filter(function (p) {
       if (state.current === p._id) return false;
-      if (state.tex && p.texture !== state.tex) return false;
+      if (texSel().length && !state.tex[p.texture]) return false;
       return withinCap(p);
     });
   }
@@ -512,12 +514,11 @@ const PRICE_CAPS = [
     const on = ISSUES.filter(function (i) { return state.issues[i.id]; });
     $("issueGuide").innerHTML = (on.length ? on : ISSUES).map(function (i) { return "<div><b>" + esc(i.label) + "</b>：" + esc(i.guide) + "</div>"; }).join("");
     const tb = $("texChips"); tb.innerHTML = "";
-    tb.appendChild(chip("指定なし", state.tex == null, function () { state.tex = null; state.limit = PAGE; render(); }));
     TEXTURES.forEach(function (t) {
       const n = texCount(t);
-      tb.appendChild(chip(t + (n ? "" : "（該当なし）"), state.tex === t, function () { state.tex = state.tex === t ? null : t; state.limit = PAGE; render(); }, n ? "" : "chip-empty"));
+      tb.appendChild(chip(t + (n ? "" : "（該当なし）"), !!state.tex[t], function () { if (state.tex[t]) delete state.tex[t]; else state.tex[t] = true; state.limit = PAGE; render(); }, n ? "" : "chip-empty"));
     });
-    $("texNote").textContent = state.tex ? "剤型が「" + state.tex + "」の製品だけを出します。" : "洗顔フォーム・固形石けんなど、上にない剤型の製品は「指定なし」のときだけ出ます。";
+    $("texNote").textContent = texSel().length ? "剤型が「" + texSel().join("」「") + "」のどれかに当たる製品を出します。" : "何も選ばなければ剤型では絞り込みません。洗顔フォーム・固形石けんなど、上にない剤型の製品は、剤型を選んでいないときだけ出ます。";
     const cb = $("capChips"); cb.innerHTML = "";
     PRICE_CAPS.forEach(function (c) { cb.appendChild(chip(c.label, state.cap === c.value, function () { state.cap = c.value; state.limit = PAGE; render(); })); });
     $("capNote").textContent = state.cap == null ? "価格がわからない製品も表示します。" : "候補と製品の検索に適用します。価格がわからない製品は除きます。";
@@ -593,7 +594,7 @@ const PRICE_CAPS = [
     }
     const tags = [];
     ISSUES.forEach(function (i) { if (state.issues[i.id]) tags.push(i.label); });
-    tags.push("剤型：" + (state.tex || "指定なし"));
+    tags.push("剤型：" + (texSel().length ? texSel().join("／") : "指定なし"));
     if (state.cap != null) tags.push("価格の上限：〜" + state.cap.toLocaleString() + "円");
     $("condSummary").innerHTML = tags.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("");
 
@@ -604,7 +605,7 @@ const PRICE_CAPS = [
     const all = r.list.concat(r.pending.map(function (p) { return { p: p, hit: [], pending: true }; }));
     if (!all.length) {
       area.innerHTML = '<div class="empty-note">条件に合う製品はデータ内にありませんでした。' +
-        (state.tex ? "剤型を「指定なし」にすると見つかることがあります。" : "") + (state.cap != null ? "価格の上限を上げると見つかることがあります。" : "") +
+        (texSel().length ? "剤型の選択を外すと見つかることがあります。" : "") + (state.cap != null ? "価格の上限を上げると見つかることがあります。" : "") +
         (r.on.length ? "不満点のチップを外すと、ほかの製品も表示されます。" : "") + "</div>";
       return;
     }

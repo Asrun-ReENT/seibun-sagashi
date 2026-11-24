@@ -252,7 +252,7 @@
     </fieldset>
 
     <fieldset>
-      <legend>形状</legend>
+      <legend>形状<span class="opt">複数選択可</span></legend>
       <div class="chips" id="formChips"></div>
     </fieldset>
 
@@ -419,7 +419,7 @@ const SOAP_NOTE = "製品データに「石けんで落とせる」「洗顔料�
   });
 
   const PAGE = 30;
-  const state = { current: null, form: null, area: null, feats: {}, spf: null, cap: null, query: "", limit: PAGE, plimit: PAGE };
+  const state = { current: null, forms: {}, area: null, feats: {}, spf: null, cap: null, query: "", limit: PAGE, plimit: PAGE };
 
   const brandOf = function (p) { return [p.maker, p.series].filter(function (v) { return v; }).join(" ／ "); };
   const priceText = function (p) {
@@ -484,10 +484,14 @@ const SOAP_NOTE = "製品データに「石けんで落とせる」「洗顔料�
   const SOAP_COUNT = SUN.filter(function (p) { return !!p.soap; }).length;
 
   function matchForm(p) {
-    if (!state.form) return true;
+    // 選んだ形状のどれかに合えば残す（何も選ばなければ絞り込みなし）
+    const sel = SUN_FORMS.filter(function (f) { return state.forms[f]; });
+    if (!sel.length) return true;
     if (!p._forms.length || p.form === "不明") return false;
-    if (state.form === "その他") return p._forms.some(function (f) { return SUN_FORMS.indexOf(f) === -1 || f === "その他"; });
-    return p._forms.indexOf(state.form) !== -1;
+    return sel.some(function (sf) {
+      if (sf === "その他") return p._forms.some(function (f) { return SUN_FORMS.indexOf(f) === -1 || f === "その他"; });
+      return p._forms.indexOf(sf) !== -1;
+    });
   }
   // 「顔用」「体用」を選んだときは「顔・体両用」も含める（「顔・首」は顔用として扱う）
   const AREA_OK = { "顔用": ["顔用", "顔・首", "顔・体両用"], "体用": ["体用", "顔・体両用"], "顔・体両用": ["顔・体両用"] };
@@ -531,7 +535,13 @@ const SOAP_NOTE = "製品データに「石けんで落とせる」「洗顔料�
       if (p) quick.appendChild(chip(q.label, state.current === p._id, function () { setCurrent(p._id); }));
     });
     buildProductList();
-    single("formChips", [{ label: "気にしない", value: null }].concat(SUN_FORMS.map(function (f) { return { label: f, value: f }; })), state.form, function (v) { state.form = v; });
+    const fc = $("formChips"); fc.innerHTML = "";
+    SUN_FORMS.forEach(function (f) {
+      fc.appendChild(chip(f, !!state.forms[f], function () {
+        if (state.forms[f]) delete state.forms[f]; else state.forms[f] = true;
+        state.limit = PAGE; render();
+      }));
+    });
     single("areaChips", [{ label: "気にしない", value: null }].concat(SUN_AREAS.map(function (f) { return { label: f, value: f }; })), state.area, function (v) { state.area = v; });
     const fb = $("featChips"); fb.innerHTML = "";
     FEATS.forEach(function (f) {
@@ -618,7 +628,8 @@ const SOAP_NOTE = "製品データに「石けんで落とせる」「洗顔料�
       cb.appendChild(d);
     }
     const tags = [];
-    tags.push("形状：" + (state.form || "気にしない"));
+    const fsel = SUN_FORMS.filter(function (f) { return state.forms[f]; });
+    tags.push("形状：" + (fsel.length ? fsel.join("／") : "気にしない"));
     tags.push("使用部位：" + (state.area || "気にしない"));
     FEATS.forEach(function (f) { if (state.feats[f.id]) tags.push(f.label); });
     if (state.spf != null) tags.push("SPF" + state.spf + "以上");

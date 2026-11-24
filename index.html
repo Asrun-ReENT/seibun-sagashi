@@ -202,6 +202,12 @@
   .pending { display: inline-block; font-size: 11px; font-weight: 700; color: var(--amber); background: var(--amber-soft); border-radius: 6px; padding: 0 6px; margin-left: 4px; vertical-align: 1px; }
   .more-btn { appearance: none; font: inherit; font-size: 13.5px; font-weight: 700; color: var(--accent); background: var(--surface); border: 1.5px dashed var(--line); border-radius: 10px; min-height: 44px; cursor: pointer; }
   .hit-count { font-size: 12.5px; color: var(--muted); margin: 0 2px; }
+  /* 成分名で探す */
+  .ing-note { margin: 8px 2px 0; font-size: 12px; color: var(--muted); }
+  .ing-note:empty { display: none; }
+  .ing-hit { margin: 6px 0 2px; font-size: 13px; }
+  .ing-hit b { color: var(--accent); }
+  .card-attrs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
   .price-list { margin: 4px 0 10px; padding: 8px 10px; background: var(--surface-2); border-radius: 8px; font-size: 13px; list-style: none; display: grid; gap: 2px; }
   .price-list .pnote { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
   .pending-note { font-size: 13px; color: var(--amber); background: var(--amber-soft); border-radius: 8px; padding: 10px 12px; margin: 0; }
@@ -333,6 +339,28 @@
       <p class="sub">タップすると全成分が見られます。</p>
       <div id="currentArea"></div>
     </div>
+  </section>
+
+  <!-- ============ 成分名で探す（おすすめの流れとは別の枠） ============ -->
+  <section class="panel" aria-label="成分名で探す">
+    <h2>成分名で探す</h2>
+    <p class="lead">上の条件やおすすめとは別に、成分名だけで製品を探せます。成分名の一部を入れると、その文字を含む成分が入った製品が出ます（例：「セラミド」→セラミドNP・セラミドAPなど）。</p>
+
+    <fieldset>
+      <label class="sub-label" for="ingSearch" style="margin-top:0">成分名</label>
+      <div class="search-box">
+        <input type="search" id="ingSearch" placeholder="成分名の一部（例：セラミド、ナイアシンアミド）" autocomplete="off" enterkeyhint="search" />
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>SPF・PA</legend>
+      <div class="chips" id="ingSpfChips"></div>
+    </fieldset>
+
+    <p class="ing-note" id="ingScopeNote"></p>
+    <p class="ing-note" id="ingSpfNote"></p>
+    <div id="ingArea" aria-live="polite" style="margin-top:10px"></div>
   </section>
 
   <footer class="note">
@@ -1009,11 +1037,68 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
       withIng.toLocaleString() + "件</b>。ほかは成分調査中）";
   })();
 
+  // ---------- 成分名で探す（おすすめの流れとは別。成分登録済みの製品だけが対象） ----------
+  const ING_SPF = [{ id: "any", label: "気にしない" }, { id: "yes", label: "あり" }, { id: "no", label: "なし" }];
+  const ingState = { query: "", spf: "any", limit: PAGE };
+  const ING_POOL = PRODUCTS.filter(function (p) { return p._hasIng; });
+  ING_POOL.forEach(function (p) { p._ingNorm = p.ingredients.map(normQ); });
+
+  function renderIngSearch() {
+    const sb = $("ingSpfChips"); sb.innerHTML = "";
+    ING_SPF.forEach(function (o) {
+      sb.appendChild(chip(o.label, ingState.spf === o.id, function () { ingState.spf = o.id; ingState.limit = PAGE; renderIngSearch(); }));
+    });
+    $("ingScopeNote").textContent = "成分登録済みの製品（" + ING_POOL.length.toLocaleString() + "件）だけが対象です。成分調査中の製品は結果に出ません。";
+    $("ingSpfNote").textContent = ingState.spf === "no" ? "「なし」は、SPF・PAの表示がない製品です（未確認のものを含みます）。" : "";
+
+    const q = normQ(ingState.query);
+    const area = $("ingArea"); area.innerHTML = "";
+    if (!q && ingState.spf === "any") {
+      area.innerHTML = '<div class="empty-note">成分名を入れるか、SPF・PAの「あり」「なし」を選ぶと、ここに製品が並びます。</div>';
+      return;
+    }
+    const hits = [];
+    ING_POOL.forEach(function (p) {
+      if (ingState.spf === "yes" && !p.spf) return;
+      if (ingState.spf === "no" && p.spf) return;
+      let matched = [];
+      if (q) {
+        p._ingNorm.forEach(function (n, i) { if (n.indexOf(q) !== -1 && matched.indexOf(p.ingredients[i]) === -1) matched.push(p.ingredients[i]); });
+        if (!matched.length) return;
+      }
+      hits.push({ p: p, matched: matched });
+    });
+    if (!hits.length) {
+      area.innerHTML = '<div class="empty-note">' + (q ? "「" + esc(ingState.query.trim()) + "」を含む成分が入った製品は、" : "") +
+        "成分登録済みの製品の中にはありませんでした。" + (q ? "表記を変える（例：カタカナの一部だけにする）と見つかることがあります。" : "") + "</div>";
+      return;
+    }
+    const cnt = document.createElement("p"); cnt.className = "hit-count"; cnt.style.margin = "0 2px 8px";
+    cnt.innerHTML = "<b>" + hits.length.toLocaleString() + "件</b>" + (q ? "（成分名に「" + esc(ingState.query.trim()) + "」を含む製品）" : "");
+    area.appendChild(cnt);
+    hits.slice(0, ingState.limit).forEach(function (h) {
+      const p = h.p;
+      const body =
+        (h.matched.length ? '<div class="ing-hit">当たった成分：' + h.matched.map(function (n) { return "<b>" + esc(n) + "</b>"; }).join("・") + "</div>" : "") +
+        (p.spf ? '<div class="card-attrs"><span class="attr">' + esc(p.spf) + "</span></div>" : "");
+      area.appendChild(card(p, "", body));
+    });
+    if (hits.length > ingState.limit) {
+      const more = document.createElement("button");
+      more.type = "button"; more.className = "more-btn";
+      more.textContent = "さらに表示（残り " + (hits.length - ingState.limit) + "件）";
+      more.addEventListener("click", function () { ingState.limit += PAGE; renderIngSearch(); });
+      area.appendChild(more);
+    }
+  }
+
   // ---------- 起動 ----------
   function render() { buildInputs(); buildBadInputs(); renderResults(); }
   $("productSearch").addEventListener("input", function (e) { state.query = e.target.value; state.limit = PAGE; buildProductList(); });
   $("badSearch").addEventListener("input", function (e) { state.badQuery = e.target.value; state.badLimit = PAGE; buildBadList(); });
   render();
+  $("ingSearch").addEventListener("input", function (e) { ingState.query = e.target.value; ingState.limit = PAGE; renderIngSearch(); });
+  renderIngSearch();
 })();
 </script>
 </body>
