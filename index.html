@@ -36,6 +36,8 @@
 
   /* ---------- header ---------- */
   header.top { padding: 8px 2px 14px; }
+  header.top-title { padding-bottom: 6px; }
+  header.top-rest { padding-top: 10px; }
   .app-name { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .08em; margin: 0 0 2px; }
   h1 { font-size: 22px; line-height: 1.4; margin: 0 0 6px; }
   header.top p { margin: 0; color: var(--muted); font-size: 13.5px; }
@@ -211,17 +213,18 @@
   .sheet-attrs:empty { display: none; }
   .attr { font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 1px 8px; }
   .sheet-note { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
-  .sun-link { color: #b04e17; font-weight: 700; }
-  @media (prefers-color-scheme: dark) { .sun-link { color: #f2a36b; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header class="top">
+  <header class="top top-title">
     <p class="app-name">成分さがし</p>
     <h1>今のスキンケアに、足りない成分はどれ？</h1>
+  </header>
+  <nav id="pageTabs" data-current="skincare" aria-label="ページ切り替え"></nav>
+  <script src="tabs.js"></script>
+  <header class="top top-rest">
     <p>条件と今使っている製品を選ぶと、成分が入っているかどうかで比べた結果が下に出ます。入力した内容はこの端末の中だけで処理し、外部には送信しません。</p>
-    <p class="page-link" style="margin:8px 0 0;font-size:13.5px"><a href="sunscreen.html" class="sun-link">日焼け止めをさがす（別ページ）›</a></p>
     <div class="sample-banner">実在製品のデータ（2026-11-18〜24確認。リニューアルで変わることがあります）</div>
     <p class="count-line" id="countLine"></p>
   </header>
@@ -336,8 +339,7 @@
     <strong>※ 実在製品のデータ（2026-11-18〜24確認。リニューアルで変わることがあります）。</strong>比べやすくするため、成分名は化粧品の一般的な表示名にそろえています（例：精製水→水、1,3-ブチレングリコール→BG）。「成分調査中」の製品は成分がまだ登録されていないため、比べる対象に含めていません。最新の内容は製品パッケージでご確認ください。<br />
     ※ 価格は税込の目安です（掲載時点のもの。一部は税抜・参考価格の表記があります）。<br />
     ※ 結果は「その成分が配合されているか」を示すもので、製品の効果・効能を示すものではありません。<br />
-    ※ 肌に合うかどうかは個人差があります。気になる症状があるときは皮ふ科などの専門家に相談してください。<br />
-    <a href="sunscreen.html" style="color:var(--accent);font-weight:700">日焼け止めをさがす（別ページ）›</a>
+    ※ 肌に合うかどうかは個人差があります。気になる症状があるときは皮ふ科などの専門家に相談してください。
   </footer>
 </div>
 
@@ -416,7 +418,7 @@ const PRICE_CAPS = [
   { label: "〜5,000円", value: 5000 },
   { label: "〜10,000円", value: 10000 }
 ];
-const TYPE_ORDER = ["化粧水", "美容液", "乳液", "クリーム", "日焼け止め", "化粧下地", "ファンデーション", "フェイスパウダー", "その他", "種類未判定"];
+const TYPE_ORDER = ["化粧水", "美容液", "乳液", "クリーム", "日焼け止め", "化粧下地", "ファンデーション", "フェイスパウダー", "クレンジング", "洗顔", "その他", "種類未判定"];
 // おすすめ候補の対象にする種類（日焼け止め・化粧下地などと「その他」は対象外）
 const REC_TYPES = ["化粧水", "美容液", "乳液", "クリーム"];
 
@@ -984,6 +986,7 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
       (p.waterproof ? '<span class="attr">' + (p.waterproof === true ? "ウォータープルーフ" : esc(p.waterproof)) + '</span>' : "") +
       (p.form ? '<span class="attr">形状：' + esc(p.form) + '</span>' : "") +
       (p.area ? '<span class="attr">使用部位：' + esc(p.area) + '</span>' : "") +
+      (p.texture ? '<span class="attr">剤型：' + esc(p.texture) + '</span>' : "") +
       (p.soap ? '<span class="attr">' + esc(p.soap === true ? "石けんで落とせる（表示）" : p.soap) + '</span>' : "");
     $("copyDone").textContent = "";
     $("sheetList").innerHTML = p._hasIng

@@ -36,6 +36,8 @@
 
   /* ---------- header ---------- */
   header.top { padding: 8px 2px 14px; }
+  header.top-title { padding-bottom: 6px; }
+  header.top-rest { padding-top: 10px; }
   .app-name { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .08em; margin: 0 0 2px; }
   h1 { font-size: 22px; line-height: 1.4; margin: 0 0 6px; }
   header.top p { margin: 0; color: var(--muted); font-size: 13.5px; }
@@ -207,8 +209,7 @@
   .attr { font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 1px 8px; }
   .sheet-note { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
   /* ---------- 日焼け止めページ ---------- */
-  .page-link { margin: 8px 0 0 !important; font-size: 13.5px; }
-  .page-link a, footer.note a, .current-box a { color: var(--accent); font-weight: 700; }
+  footer.note a, .current-box a { color: var(--accent); font-weight: 700; }
   .card-attrs { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 6px 0 4px; }
   .attr-sub { color: var(--ink); background: var(--surface-2); font-weight: 500; }
   .current-box { border: 1.5px solid var(--accent); background: var(--accent-soft); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; }
@@ -222,11 +223,14 @@
 </head>
 <body>
 <div class="wrap">
-  <header class="top">
+  <header class="top top-title">
     <p class="app-name">成分さがし ／ 日焼け止め</p>
     <h1>日焼け止めを、表示と成分で絞りこむ</h1>
+  </header>
+  <nav id="pageTabs" data-current="sunscreen" aria-label="ページ切り替え"></nav>
+  <script src="tabs.js"></script>
+  <header class="top top-rest">
     <p>形状・使用部位・SPFなどの条件を選ぶと、合う製品が下に並びます。入力した内容はこの端末の中だけで処理し、外部には送信しません。</p>
-    <p class="page-link"><a href="index.html">‹ スキンケアの成分さがしへ</a></p>
     <div class="sample-banner">実在製品のデータ（2026-11-18〜24確認。リニューアルで変わることがあります）。SPF・PAやウォータープルーフはメーカー公式の表示に基づきます。</div>
     <p class="count-line" id="countLine"></p>
   </header>
@@ -291,8 +295,7 @@
     ※ 「ノンケミカル」は、登録している全成分に紫外線吸収剤（下の一覧）が含まれていない製品です。成分調査中の製品は判定していません。<br />
     ※ 価格は税込の目安です（掲載時点のもの。一部は税抜・参考価格の表記があります）。<br />
     ※ 表示と成分の事実を並べたもので、製品の効果・効能を示すものではありません。肌に合うかどうかは個人差があります。<br />
-    <span id="absorberList"></span><br />
-    <a href="index.html">‹ スキンケアの成分さがしへ</a>
+    <span id="absorberList"></span>
   </footer>
 </div>
 

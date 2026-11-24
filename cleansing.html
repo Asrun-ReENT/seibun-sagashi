@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>成分さがし ／ クレンジング・洗顔</title>
+<style>
+  :root {
+    --bg: #f3f5fa; --surface: #ffffff; --surface-2: #e9eef7;
+    --ink: #1f2533; --muted: #5d6578; --line: #d8dfec;
+    --accent: #3a56a0; --accent-ink: #ffffff; --accent-soft: #e2e9f7;
+    --amber: #7d5a12; --amber-soft: #f6eed6;
+    --rose: #a44a52; --rose-soft: #f9e7e7;
+    --shadow: 0 1px 2px rgba(31,37,51,.06), 0 8px 24px rgba(31,37,51,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151d; --surface: #1b2030; --surface-2: #222a3c;
+      --ink: #e9edf6; --muted: #a6afc4; --line: #343d55;
+      --accent: #9db3ef; --accent-ink: #121a30; --accent-soft: #283553;
+      --amber: #e3c066; --amber-soft: #3d3519;
+      --rose: #e79aa0; --rose-soft: #3d2428;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+    font-size: 15px; line-height: 1.65;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 16px 14px calc(48px + env(safe-area-inset-bottom)); }
+
+  /* ---------- header ---------- */
+  header.top { padding: 8px 2px 14px; }
+  header.top-title { padding-bottom: 6px; }
+  header.top-rest { padding-top: 10px; }
+  .app-name { font-size: 13px; font-weight: 700; color: var(--accent); letter-spacing: .08em; margin: 0 0 2px; }
+  h1 { font-size: 22px; line-height: 1.4; margin: 0 0 6px; }
+  header.top p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  .sample-banner {
+    margin-top: 12px; padding: 8px 12px; border-radius: 10px;
+    background: var(--amber-soft); color: var(--amber); font-size: 13px; font-weight: 700;
+  }
+
+  /* ---------- panels ---------- */
+  .panel {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: var(--shadow); padding: 18px 16px 20px; margin-bottom: 16px;
+  }
+  .panel h2 { font-size: 18px; margin: 0 0 4px; }
+  .panel .lead { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+
+  fieldset { border: 0; margin: 0 0 20px; padding: 0; min-width: 0; }
+  fieldset:last-child { margin-bottom: 0; }
+  legend { font-weight: 800; font-size: 14px; margin-bottom: 8px; padding: 0; }
+  legend .opt { font-size: 11.5px; font-weight: 500; color: var(--muted); margin-left: 6px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    appearance: none; cursor: pointer; font: inherit; font-size: 14px; font-weight: 500;
+    min-height: 40px; padding: 6px 14px; border-radius: 999px;
+    border: 1.5px solid var(--line); background: var(--surface); color: var(--ink);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+  button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .target-guide {
+    margin-top: 10px; border-radius: 10px; padding: 10px 12px;
+    background: var(--surface-2); font-size: 13px;
+  }
+  .target-guide b { color: var(--accent); }
+
+  /* ---------- product picker ---------- */
+  .sub-label { font-size: 12.5px; color: var(--muted); font-weight: 700; margin: 12px 0 6px; display: block; }
+  .sub-label:first-of-type { margin-top: 0; }
+  .search-box input {
+    width: 100%; font: inherit; font-size: 16px; /* 16px以上でiOSの自動ズームを防ぐ */
+    min-height: 44px; padding: 8px 14px; border-radius: 10px;
+    border: 1.5px solid var(--line); background: var(--surface); color: var(--ink);
+  }
+  .search-box input::placeholder { color: var(--muted); }
+  .product-list { display: grid; gap: 8px; margin-top: 10px; }
+  .product-row {
+    display: flex; align-items: stretch; border: 1.5px solid var(--line);
+    border-radius: 10px; background: var(--surface); overflow: hidden;
+  }
+  .product-row.on { border-color: var(--accent); background: var(--accent-soft); }
+  .product-row .pick {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px;
+    appearance: none; border: 0; background: transparent; color: var(--ink);
+    font: inherit; text-align: left; padding: 8px 10px; min-height: 52px; cursor: pointer;
+  }
+  .mark {
+    flex: none; width: 22px; height: 22px; border-radius: 50%;
+    border: 1.5px solid var(--line); display: grid; place-items: center;
+    color: transparent; font-size: 13px; font-weight: 900;
+  }
+  .product-row.on .mark { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .ptype {
+    flex: none; font-size: 11px; font-weight: 700; color: var(--accent);
+    background: var(--accent-soft); border-radius: 6px; padding: 1px 7px;
+  }
+  .product-row.on .ptype { background: var(--surface); }
+  .pname { font-weight: 700; font-size: 14px; line-height: 1.4; }
+  .pbrand { display: block; font-size: 12px; color: var(--muted); line-height: 1.45; }
+  .product-row .info {
+    flex: none; appearance: none; border: 0; border-left: 1px solid var(--line);
+    background: transparent; color: var(--accent); font: inherit; font-size: 12px; font-weight: 700;
+    padding: 0 12px; cursor: pointer; min-width: 64px;
+  }
+  .no-hit { color: var(--muted); font-size: 13.5px; padding: 6px 2px; margin: 0; }
+
+  .selected-box { margin-top: 14px; border-top: 1px dashed var(--line); padding-top: 12px; }
+  .selected-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sel-chip {
+    display: inline-flex; align-items: center; gap: 4px; min-height: 36px;
+    padding: 4px 4px 4px 12px; background: var(--accent-soft); border-radius: 999px;
+    font-size: 13px; font-weight: 700;
+  }
+  .sel-chip button {
+    appearance: none; border: 0; cursor: pointer; width: 30px; height: 30px; border-radius: 50%;
+    background: transparent; color: var(--muted); font-size: 16px; line-height: 1;
+  }
+  .muted-note { color: var(--muted); font-size: 13px; }
+
+  /* ---------- results ---------- */
+  .cond-summary { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .tag { font-size: 12.5px; font-weight: 700; padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); }
+  .result-block { margin-bottom: 22px; }
+  .result-block:last-child { margin-bottom: 0; }
+  .result-block h3 { font-size: 15px; font-weight: 800; margin: 0 0 2px; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .dot-missing { background: var(--rose); } .dot-overlap { background: var(--amber); } .dot-rec { background: var(--accent); }
+  .result-block .sub { margin: 0 0 10px; font-size: 12.5px; color: var(--muted); }
+
+  .cat-card { border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; background: var(--rose-soft); color: var(--rose); }
+  .cat-card .cat-name { font-weight: 800; font-size: 14px; }
+  .cat-card .cat-from { font-size: 11.5px; font-weight: 500; opacity: .9; }
+  .cat-card .cat-ings { font-size: 12.5px; color: var(--ink); margin-top: 2px; }
+  .ing-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ing-chip { font-size: 13.5px; font-weight: 700; padding: 5px 12px; border-radius: 8px; background: var(--amber-soft); color: var(--amber); }
+  .ing-chip small { display: block; font-weight: 500; font-size: 11.5px; }
+  .empty-note { border: 1px dashed var(--line); border-radius: 10px; padding: 12px 14px; color: var(--muted); font-size: 13px; background: var(--surface-2); }
+  .ok-note { border-radius: 10px; padding: 12px 14px; font-size: 13px; background: var(--accent-soft); }
+
+  .target-banner {
+    border: 1.5px solid var(--accent); background: var(--accent-soft); border-radius: 10px;
+    padding: 8px 12px; margin-bottom: 10px; font-size: 13px;
+  }
+  .target-banner b { color: var(--accent); font-size: 15px; }
+
+  .card {
+    display: block; width: 100%; text-align: left; font: inherit; color: var(--ink); cursor: pointer;
+    appearance: none; border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+    padding: 12px 14px; margin-bottom: 10px; -webkit-tap-highlight-color: transparent;
+  }
+  .card:active { background: var(--surface-2); }
+  .card-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 8px; }
+  .rank { font-size: 12px; font-weight: 800; color: var(--accent-ink); background: var(--accent); border-radius: 6px; padding: 0 8px; }
+  .cname { font-weight: 800; font-size: 15px; }
+  .reason { margin: 6px 0 2px; font-size: 13.5px; }
+  .reason b { color: var(--accent); }
+  .card-foot { margin-top: 4px; font-size: 12px; font-weight: 700; color: var(--accent); }
+
+  footer.note { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.8; padding: 0 2px; }
+  footer.note strong { color: var(--ink); }
+
+  /* ---------- 全成分シート ---------- */
+  dialog.sheet {
+    border: 0; padding: 0; margin: auto auto 0; width: 100%; max-width: 560px;
+    max-height: 80vh; border-radius: 16px 16px 0 0; background: var(--surface); color: var(--ink);
+  }
+  dialog.sheet::backdrop { background: rgba(0,0,0,.4); }
+  .sheet-inner { padding: 18px 16px calc(20px + env(safe-area-inset-bottom)); }
+  .sheet-head { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+  .sheet-head h4 { margin: 0; font-size: 17px; line-height: 1.4; flex: 1; }
+  .sheet-close {
+    appearance: none; border: 0; background: var(--surface-2); color: var(--ink);
+    width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; flex: none;
+  }
+  .full-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+  .full-list li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 2px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .full-list li span { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .full-list li.hit { font-weight: 800; }
+  .full-list li.hit span { color: var(--accent); }
+  .full-list .act { font-style: normal; font-size: 11px; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 0 6px; margin-left: 6px; white-space: nowrap; }
+  .sheet-memo { font-size: 12.5px; background: var(--surface-2); border-radius: 8px; padding: 8px 10px; margin: 12px 0 0; }
+  .sheet-memo:empty { display: none; }
+  .count-line { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+  .count-line b { color: var(--ink); }
+  .pprice { display: block; font-size: 12px; color: var(--ink); line-height: 1.45; }
+  .pending { display: inline-block; font-size: 11px; font-weight: 700; color: var(--amber); background: var(--amber-soft); border-radius: 6px; padding: 0 6px; margin-left: 4px; vertical-align: 1px; }
+  .more-btn { appearance: none; font: inherit; font-size: 13.5px; font-weight: 700; color: var(--accent); background: var(--surface); border: 1.5px dashed var(--line); border-radius: 10px; min-height: 44px; cursor: pointer; }
+  .hit-count { font-size: 12.5px; color: var(--muted); margin: 0 2px; }
+  .price-list { margin: 4px 0 10px; padding: 8px 10px; background: var(--surface-2); border-radius: 8px; font-size: 13px; list-style: none; display: grid; gap: 2px; }
+  .price-list .pnote { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .pending-note { font-size: 13px; color: var(--amber); background: var(--amber-soft); border-radius: 8px; padding: 10px 12px; margin: 0; }
+  .unit-price { display: inline-block; font-size: 11.5px; color: var(--muted); margin-left: 6px; }
+  .copy-row { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
+  .copy-btn { appearance: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--accent); background: var(--surface); border: 1.5px solid var(--accent); border-radius: 999px; min-height: 36px; padding: 4px 14px; cursor: pointer; }
+  .copy-done { font-size: 12px; color: var(--accent); }
+  .sheet-attrs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+  .sheet-attrs:empty { display: none; }
+  .attr { font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 1px 8px; }
+  .sheet-note { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+  /* ---------- クレンジング・洗顔ページ ---------- */
+  footer.note a, .current-box a { color: var(--accent); font-weight: 700; }
+  .card-attrs { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 6px 0 4px; }
+  .attr-sub { color: var(--ink); background: var(--surface-2); font-weight: 500; }
+  .current-box { border: 1.5px solid var(--accent); background: var(--accent-soft); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; }
+  .current-label { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 800; color: var(--accent); margin-bottom: 2px; }
+  .clear-btn { appearance: none; font: inherit; font-size: 12px; font-weight: 700; color: var(--accent); background: var(--surface); border: 1px solid var(--accent); border-radius: 999px; padding: 2px 12px; cursor: pointer; min-height: 30px; }
+  .chip-empty { border-style: dashed; color: var(--muted); }
+  .chip-empty[aria-pressed="true"] { color: var(--accent-ink); }
+  .target-guide div + div { margin-top: 6px; }
+  .warn { color: var(--amber); font-weight: 700; }
+  .stage { font-weight: 700; }
+  .stage.s3 { background: var(--accent); color: var(--accent-ink); }
+  .stage.s2 { background: var(--accent-soft); color: var(--accent); }
+  .stage.s1 { background: var(--surface-2); color: var(--ink); }
+  .sub-reason { font-size: 12px; color: var(--muted); margin-top: 0; }
+  .relax-note { font-size: 12.5px; color: var(--amber); background: var(--amber-soft); border-radius: 8px; padding: 8px 10px; margin: 0 0 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top top-title">
+    <p class="app-name">成分さがし ／ クレンジング・洗顔</p>
+    <h1>クレンジング・洗顔を、剤型と成分から見る</h1>
+  </header>
+  <nav id="pageTabs" data-current="cleansing" aria-label="ページ切り替え"></nav>
+  <script src="tabs.js"></script>
+  <header class="top top-rest">
+    <p>今の製品の不満点を選ぶと、剤型と成分からの目安で候補を並べます。入力した内容はこの端末の中だけで処理し、外部には送信しません。</p>
+    <div class="sample-banner">実在製品のデータ（2026-11-18〜24確認。リニューアルで変わることがあります）。洗浄力の段階は、剤型と成分からの目安です。実際の使用感は配合量や使い方で変わります。</div>
+    <p class="count-line" id="countLine"></p>
+  </header>
+
+  <section class="panel" aria-label="入力">
+    <h2>条件</h2>
+    <p class="lead">タップで選びます。文字入力は製品の検索だけです。</p>
+
+    <fieldset>
+      <legend>今使っているクレンジング／洗顔<span class="opt">任意・1つ</span></legend>
+      <span class="sub-label">よく使われる候補</span>
+      <div class="chips" id="quickChips"></div>
+      <label class="sub-label" for="productSearch">製品名・メーカーで検索</label>
+      <div class="search-box">
+        <input type="search" id="productSearch" placeholder="製品名・メーカー（例：ファンケル）" autocomplete="off" enterkeyhint="search" />
+      </div>
+      <div class="product-list" id="productList"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>今の製品の不満点<span class="opt">複数選択可</span></legend>
+      <div class="chips" id="issueChips"></div>
+      <div class="target-guide" id="issueGuide" aria-live="polite"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>剤型</legend>
+      <div class="chips" id="texChips"></div>
+      <p class="muted-note" id="texNote" style="margin:6px 0 0;font-size:12px"></p>
+    </fieldset>
+
+    <fieldset>
+      <legend>価格の上限<span class="opt">代表価格（税込の目安）で判定</span></legend>
+      <div class="chips" id="capChips"></div>
+      <p class="muted-note" id="capNote" style="margin:6px 0 0;font-size:12px"></p>
+    </fieldset>
+  </section>
+
+  <section class="panel" aria-label="結果" aria-live="polite">
+    <h2>候補</h2>
+    <p class="lead">選ぶたびに自動で更新されます。カードをタップすると全成分が見られます。</p>
+    <div id="currentBox"></div>
+    <div class="cond-summary" id="condSummary"></div>
+    <div id="relaxNote"></div>
+    <div id="resultArea"></div>
+  </section>
+
+  <footer class="note">
+    <strong>※ 実在製品のデータ（2026-11-18〜24確認。リニューアルで変わることがあります）。</strong>成分名は化粧品の一般的な表示名にそろえています。最新の内容は製品パッケージでご確認ください。<br />
+    ※ 洗浄力の段階は、剤型と成分からの目安です。成分の配合量までは分からないため、実際の使用感は配合量や使い方で変わります。<br />
+    ※ 洗浄力の目安：<b>強め</b>＝オイル・バーム／<b>中くらい</b>＝ジェル・クリーム・泡・パウダー／<b>マイルド寄り</b>＝ミルク・リキッド・シート。そのほかの剤型（洗顔フォーム・固形石けん・その他など）は目安なしです。<br />
+    ※ 洗浄成分の系統（洗顔のみ）：<b>アミノ酸系</b>＝グルタミン酸系・アラニン系・グリシン系の洗浄成分が成分リストの先頭から10番目以内にあるもの／<b>石けん系</b>＝石ケン素地を含むもの、または脂肪酸（ラウリン酸・ミリスチン酸・パルミチン酸・ステアリン酸）と水酸化Kの両方を含むもの。<br />
+    ※ 価格は税込の目安です（掲載時点のもの）。表示と成分の事実を並べたもので、製品の効果・効能を示すものではありません。肌に合うかどうかは個人差があります。
+  </footer>
+</div>
+
+<dialog class="sheet" id="sheet" aria-labelledby="sheetTitle">
+  <div class="sheet-inner">
+    <div class="sheet-head">
+      <div style="flex:1">
+        <span class="ptype" id="sheetType"></span>
+        <h4 id="sheetTitle"></h4>
+        <div class="pbrand" id="sheetBrand"></div>
+      </div>
+      <button type="button" class="sheet-close" id="sheetClose" aria-label="閉じる">×</button>
+    </div>
+    <div class="copy-row">
+      <button type="button" class="copy-btn" id="copyBtn">商品名をコピー</button>
+      <span class="copy-done" id="copyDone" aria-live="polite"></span>
+    </div>
+    <p class="sheet-attrs" id="sheetAttrs"></p>
+    <div id="sheetPrices"></div>
+    <ul class="full-list" id="sheetList"></ul>
+    <p class="sheet-memo" id="sheetMemo"></p>
+    <p class="sheet-note">印の付いた成分は、洗浄成分の系統の判定に使った成分です。成分名は一般的な表示名にそろえています。</p>
+  </div>
+</dialog>
+
+<!-- 製品データは products.js（本体ページ・日焼け止めページ・このページで共通） -->
+<script src="products.js"></script>
+<!-- =====================================================================
+     クレンジング・洗顔ページの設定（ここは後から調整可）
+     ===================================================================== -->
+<script>
+// 「よく使われる候補」チップ（製品名と、メーカー欄に含まれる語で指定）
+const CL_QUICK = [
+  { label: "ファンケル マイルドクレンジングオイル", name: "マイルドクレンジング オイル", maker: "ファンケル" },
+  { label: "DUO ザ クレンジングバーム", name: "ザ クレンジングバーム", maker: "DUO" },
+  { label: "ビオレ ザクレンズオイル", name: "ザ クレンズ オイルメイク落とし", maker: "ビオレ" },
+  { label: "キュレル ジェルメイク落とし", name: "ジェルメイク落とし", maker: "キュレル" },
+  { label: "ソフティモ スピーディ クレンジングオイル", name: "スピーディ クレンジングオイル", maker: "ソフティモ" },
+  { label: "ちふれ ウォッシャブル コールド クリーム", name: "ウォッシャブル コールド クリーム", maker: "ちふれ" }
+];
+// 剤型 → 洗浄力の目安（3＝強め、2＝中くらい、1＝マイルド寄り）。ここにない剤型は目安なし
+const STRENGTH = { "オイル": 3, "バーム": 3, "ジェル": 2, "クリーム": 2, "泡": 2, "パウダー": 2, "ミルク": 1, "リキッド": 1, "シート": 1 };
+const STRENGTH_LABEL = { 3: "強め", 2: "中くらい", 1: "マイルド寄り" };
+const TEXTURES = ["オイル", "バーム", "ジェル", "クリーム", "ミルク", "リキッド", "シート", "泡", "パウダー"];
+// 「ぬるつきが残る」で後ろに回す重めの剤型
+const HEAVY = ["ミルク", "クリーム"];
+// 洗浄成分の系統（洗顔のみ）
+// アミノ酸系：アシル基（ココイル・ラウロイルなど）＋グルタミン酸／（メチル）アラニン／グリシン の塩（Na・K・TEAなど）。成分リストの先頭から10番目以内
+// （塩でないもの、例：ラウロイルグルタミン酸ジ（フィトステリル／オクチルドデシル）などの油性成分は数えない）
+const AMINO_RX = /(ココイル|ラウロイル|ミリストイル|パルミトイル|ステアロイル|カプロイル|ヤシ油脂肪酸アシル|ヤシ脂肪酸アシル)(メチル)?(グルタミン酸|アラニン|グリシン)(2?Na|K|TEA|Mg|アンモニウム|ナトリウム|カリウム)/;
+const AMINO_WITHIN = 10;
+// 石けん系：石ケン素地（表記ゆれを含む）、または脂肪酸＋水酸化K
+const SOAP_BASE_RX = /石ケン素地|石けん素地|石鹸素地|せっけん素地/;
+const FATTY_ACIDS = ["ラウリン酸", "ミリスチン酸", "パルミチン酸", "ステアリン酸"];
+const KOH = ["水酸化K", "水酸化カリウム"];
+const PRICE_CAPS = [
+  { label: "上限なし", value: null }, { label: "〜1,000円", value: 1000 }, { label: "〜3,000円", value: 3000 },
+  { label: "〜5,000円", value: 5000 }, { label: "〜10,000円", value: 10000 }
+];
+</script>
+
+<script>
+(function () {
+  "use strict";
+  const $ = function (id) { return document.getElementById(id); };
+  const esc = function (s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  };
+  const nfkc = function (s) { s = String(s || ""); return s.normalize ? s.normalize("NFKC") : s; };
+  const normQ = function (s) { return nfkc(s).toLowerCase().replace(/\s+/g, ""); };
+
+  // 対象：種類がクレンジング・洗顔の製品
+  const ALL = PRODUCTS.map(function (p, i) {
+    p._id = "p" + i; p.ingredients = p.ingredients || []; p.prices = p.prices || [];
+    p._hasIng = p.ingredients.length > 0;
+    return p;
+  });
+  const CL = ALL.filter(function (p) { return p.type === "クレンジング" || p.type === "洗顔"; });
+  const BY_ID = {}; CL.forEach(function (p) { BY_ID[p._id] = p; });
+  CL.forEach(function (p) {
+    // 成分調査中の製品は、段階・系統の判定に使わない
+    p._stage = p._hasIng && STRENGTH[p.texture] ? STRENGTH[p.texture] : null;
+    p._sys = []; p._sysIngs = [];
+    if (p._hasIng && p.type === "洗顔") {
+      const ings = p.ingredients.map(nfkc);
+      const am = ings.slice(0, AMINO_WITHIN).filter(function (n) { return AMINO_RX.test(n); });
+      if (am.length) { p._sys.push("アミノ酸系"); p._sysIngs = p._sysIngs.concat(am); }
+      const sb = ings.filter(function (n) { return SOAP_BASE_RX.test(n); });
+      const fa = ings.filter(function (n) { return FATTY_ACIDS.indexOf(n) !== -1; });
+      const kh = ings.filter(function (n) { return KOH.indexOf(n) !== -1; });
+      if (sb.length) { p._sys.push("石けん系"); p._sysIngs = p._sysIngs.concat(sb); }
+      else if (fa.length && kh.length) { p._sys.push("石けん系"); p._sysIngs = p._sysIngs.concat(fa, kh); }
+    }
+  });
+  CL.sort(function (a, b) {
+    return (a.type === b.type ? 0 : a.type === "クレンジング" ? -1 : 1) || (parseInt(a._id.slice(1), 10) - parseInt(b._id.slice(1), 10));
+  });
+
+  const PAGE = 30;
+  const state = { current: null, issues: {}, tex: null, cap: null, query: "", limit: PAGE, plimit: PAGE };
+
+  const brandOf = function (p) { return [p.maker, p.series].filter(function (v) { return v; }).join(" ／ "); };
+  const priceText = function (p) { const v = p.prices[0]; if (!v) return ""; return [v.price, v.volume].filter(function (x) { return x; }).join(" ／ "); };
+  const repPrice = function (p) {
+    const v = p.prices[0];
+    if (!v || !v.price || String(v.price).indexOf("円") === -1) return null;
+    const m = String(v.price).match(/(\d[\d,]*)/);
+    if (!m) return null;
+    const n = parseInt(m[1].replace(/,/g, ""), 10);
+    return isFinite(n) && n > 0 ? n : null;
+  };
+  const withinCap = function (p) { if (state.cap == null) return true; const n = repPrice(p); return n != null && n <= state.cap; };
+  const unitPrice = function (p) {
+    const v = p.prices[0];
+    if (!v || !v.price || !v.volume || /〜|~|税抜/.test(v.price)) return "";
+    const m = nfkc(v.volume).replace(/\([^)]*\)/g, "").trim().match(/^(\d+(?:\.\d+)?)\s*(ml|g|cc)$/i);
+    if (!m) return "";
+    const amount = parseFloat(m[1]), yen = repPrice(p);
+    if (!yen || !amount) return "";
+    const per = yen / amount;
+    return "約" + (per >= 1 ? String(Math.round(per)) : (Math.round(per * 10) / 10).toFixed(1)) + "円/" + (m[2].toLowerCase() === "g" ? "g" : "ml");
+  };
+  const unitBadge = function (p) { const u = unitPrice(p); return u ? '<span class="unit-price">' + esc(u) + "</span>" : ""; };
+  const copyName = function (p) {
+    const parts = [p.maker, p.series, p.name].filter(function (x) { return x; });
+    const out = [];
+    parts.forEach(function (x, i) { if (parts.slice(i + 1).join(" ").indexOf(x) === -1) out.push(x); });
+    return out.join(" ").replace(/\s*(…|\.\.\.)+\s*$/, "").trim();
+  };
+  const pendingBadge = function (p) { return p._hasIng ? "" : '<span class="pending">成分調査中</span>'; };
+  const stageTag = function (p) {
+    return p._stage ? '<span class="attr stage s' + p._stage + '">洗浄力の目安：' + STRENGTH_LABEL[p._stage] + "</span>"
+      : '<span class="attr attr-sub">洗浄力の目安なし</span>';
+  };
+  const attrTags = function (p) {
+    const a = ['<span class="attr attr-sub">剤型：' + esc(p.texture || "記録なし") + "</span>", stageTag(p)];
+    p._sys.forEach(function (s) { a.push('<span class="attr">' + esc(s) + "</span>"); });
+    if (p.waterproof) a.push('<span class="attr attr-sub">' + esc(p.waterproof === true ? "ウォータープルーフ" : p.waterproof) + "</span>");
+    return a.join("");
+  };
+
+  // ---------- 不満点 ----------
+  // ok(p, cur)：その不満点に合う候補か／why(p, cur)：理由の一言／sort：並べ替えの重み（小さいほど前）
+  const ISSUES = [
+    { id: "makeup", label: "メイクが落ちきらない",
+      guide: "今の製品より洗浄力の目安が上の製品を前に出します（今の製品を選んでいないときや、今の製品に目安がないときは「強め」）。",
+      ok: function (p, cur) { return p._stage != null && (cur && cur._stage ? p._stage > cur._stage : p._stage === 3); },
+      why: function (p, cur) { return cur && cur._stage ? "今の製品（" + STRENGTH_LABEL[cur._stage] + "）より洗浄力が強めの目安です（" + STRENGTH_LABEL[p._stage] + "）" : "洗浄力が強めの目安です"; },
+      sort: function (p) { return -(p._stage || 0); } },
+    { id: "dry", label: "洗い上がりがつっぱる・乾燥する",
+      guide: "クレンジングは洗浄力の目安が「マイルド寄り」の製品、洗顔はアミノ酸系の洗浄成分の製品を前に出します。",
+      ok: function (p) { return p.type === "洗顔" ? p._sys.indexOf("アミノ酸系") !== -1 : p._stage === 1; },
+      why: function (p) { return p.type === "洗顔" ? "アミノ酸系の洗浄成分です（" + p._sysIngs.filter(function (n) { return AMINO_RX.test(n); }).join("・") + "）" : "洗浄力がマイルド寄りの目安です（" + p.texture + "）"; },
+      sort: function (p) { return p._stage || 9; } },
+    { id: "slimy", label: "ぬるつきが残る",
+      guide: "洗浄力の目安が「中くらい」以上の製品を前に出し、ミルク・クリームなど重めの剤型は後ろに回します。",
+      ok: function (p) { return p._stage != null && p._stage >= 2; },
+      why: function (p) { return "洗浄力が" + STRENGTH_LABEL[p._stage] + "の目安です"; },
+      sort: function (p) { return HEAVY.indexOf(p.texture) !== -1 ? 1 : 0; } }
+  ];
+
+  function baseList() {
+    return CL.filter(function (p) {
+      if (state.current === p._id) return false;
+      if (state.tex && p.texture !== state.tex) return false;
+      return withinCap(p);
+    });
+  }
+  // 戻り値：{ list:[{p, hit:[issue...]}], relaxed:bool, pending:[p] }
+  function results() {
+    const cur = state.current ? BY_ID[state.current] : null;
+    const base = baseList();
+    const pending = base.filter(function (p) { return !p._hasIng; });
+    const pool = base.filter(function (p) { return p._hasIng; });
+    const on = ISSUES.filter(function (i) { return state.issues[i.id]; });
+    if (!on.length) return { list: pool.map(function (p) { return { p: p, hit: [] }; }), relaxed: false, pending: pending, on: on };
+    const scored = pool.map(function (p) { return { p: p, hit: on.filter(function (i) { return i.ok(p, cur); }) }; });
+    let list = scored.filter(function (r) { return r.hit.length === on.length; });
+    let relaxed = false;
+    if (!list.length) {
+      relaxed = true;   // すべてに合う候補がないときは、合う条件が多い順に（1つも合わないものは出さない）
+      list = scored.filter(function (r) { return r.hit.length > 0; });
+    }
+    list.sort(function (a, b) {
+      if (b.hit.length !== a.hit.length) return b.hit.length - a.hit.length;
+      for (let i = 0; i < on.length; i++) {
+        const d = on[i].sort(a.p) - on[i].sort(b.p);
+        if (d) return d;
+      }
+      return 0;
+    });
+    return { list: list, relaxed: relaxed, pending: pending, on: on };
+  }
+
+  // ---------- 入力 ----------
+  function chip(label, pressed, onClick, extra) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip" + (extra ? " " + extra : ""); b.textContent = label;
+    b.setAttribute("aria-pressed", pressed ? "true" : "false");
+    b.addEventListener("click", onClick);
+    return b;
+  }
+  const findQuick = function (q) { return CL.find(function (p) { return p.name === q.name && String(p.maker).indexOf(q.maker) !== -1; }); };
+  function setCurrent(id) { state.current = state.current === id ? null : id; state.limit = PAGE; render(); }
+  const texCount = function (t) { return CL.filter(function (p) { return p.texture === t; }).length; };
+
+  function buildInputs() {
+    const quick = $("quickChips"); quick.innerHTML = "";
+    CL_QUICK.forEach(function (q) { const p = findQuick(q); if (p) quick.appendChild(chip(q.label, state.current === p._id, function () { setCurrent(p._id); })); });
+    buildProductList();
+    const ib = $("issueChips"); ib.innerHTML = "";
+    ISSUES.forEach(function (i) {
+      ib.appendChild(chip(i.label, !!state.issues[i.id], function () {
+        if (state.issues[i.id]) delete state.issues[i.id]; else state.issues[i.id] = true;
+        state.limit = PAGE; render();
+      }));
+    });
+    const on = ISSUES.filter(function (i) { return state.issues[i.id]; });
+    $("issueGuide").innerHTML = (on.length ? on : ISSUES).map(function (i) { return "<div><b>" + esc(i.label) + "</b>：" + esc(i.guide) + "</div>"; }).join("");
+    const tb = $("texChips"); tb.innerHTML = "";
+    tb.appendChild(chip("指定なし", state.tex == null, function () { state.tex = null; state.limit = PAGE; render(); }));
+    TEXTURES.forEach(function (t) {
+      const n = texCount(t);
+      tb.appendChild(chip(t + (n ? "" : "（該当なし）"), state.tex === t, function () { state.tex = state.tex === t ? null : t; state.limit = PAGE; render(); }, n ? "" : "chip-empty"));
+    });
+    $("texNote").textContent = state.tex ? "剤型が「" + state.tex + "」の製品だけを出します。" : "洗顔フォーム・固形石けんなど、上にない剤型の製品は「指定なし」のときだけ出ます。";
+    const cb = $("capChips"); cb.innerHTML = "";
+    PRICE_CAPS.forEach(function (c) { cb.appendChild(chip(c.label, state.cap === c.value, function () { state.cap = c.value; state.limit = PAGE; render(); })); });
+    $("capNote").textContent = state.cap == null ? "価格がわからない製品も表示します。" : "候補と製品の検索に適用します。価格がわからない製品は除きます。";
+  }
+
+  function buildProductList() {
+    const box = $("productList"); box.innerHTML = "";
+    const q = normQ(state.query);
+    if (!q) { box.innerHTML = '<p class="no-hit">製品名を入力すると、ここに候補が出ます（クレンジング・洗顔の製品から探します）。</p>'; return; }
+    const hits = CL.filter(function (p) { return [p.name, p.type, p.maker, p.series].some(function (v) { return v && normQ(v).indexOf(q) !== -1; }); });
+    if (!hits.length) { box.innerHTML = '<p class="no-hit">「' + esc(state.query.trim()) + '」に合う製品は見つかりませんでした。</p>'; return; }
+    const shown = hits.slice(0, state.plimit);
+    const cnt = document.createElement("p"); cnt.className = "hit-count";
+    cnt.textContent = hits.length + "件見つかりました" + (hits.length > shown.length ? "（" + shown.length + "件を表示中）" : "");
+    box.appendChild(cnt);
+    shown.forEach(function (p) {
+      const on = state.current === p._id;
+      const row = document.createElement("div");
+      row.className = "product-row" + (on ? " on" : "");
+      row.innerHTML =
+        '<button type="button" class="pick" aria-pressed="' + on + '">' +
+          '<span class="mark" aria-hidden="true">✓</span>' +
+          '<span class="ptype">' + esc(p.type) + '</span>' +
+          '<span><span class="pname">' + esc(p.name) + pendingBadge(p) + '</span>' +
+          (brandOf(p) ? '<span class="pbrand">' + esc(brandOf(p)) + '</span>' : '') +
+          '<span class="pprice">' + esc([p.texture, priceText(p)].filter(function (x) { return x; }).join(" ／ ")) + '</span></span>' +
+        '</button>' +
+        '<button type="button" class="info" aria-label="' + esc(p.name) + 'の詳細を見る">' + (p._hasIng ? "全成分" : "詳細") + '</button>';
+      row.querySelector(".pick").addEventListener("click", function () { setCurrent(p._id); });
+      row.querySelector(".info").addEventListener("click", function () { openSheet(p); });
+      box.appendChild(row);
+    });
+    if (hits.length > shown.length) {
+      const more = document.createElement("button");
+      more.type = "button"; more.className = "more-btn";
+      more.textContent = "さらに表示（残り " + (hits.length - shown.length) + "件）";
+      more.addEventListener("click", function () { state.plimit += PAGE; buildProductList(); });
+      box.appendChild(more);
+    }
+  }
+
+  // ---------- 結果 ----------
+  function card(p, reasons) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "card";
+    const sysWhy = p._sys.length ? '<p class="reason sub-reason">系統の判定に使った成分：' + esc(p._sysIngs.join("・")) + "</p>" : "";
+    b.innerHTML =
+      '<div class="card-head"><span class="cname">' + esc(p.name) + pendingBadge(p) + '</span><span class="ptype">' + esc(p.type) + '</span></div>' +
+      (brandOf(p) ? '<div class="pbrand">' + esc(brandOf(p)) + '</div>' : '') +
+      '<div class="card-attrs">' + attrTags(p) + '</div>' +
+      '<div class="pprice">' + (priceText(p) ? esc(priceText(p)) + unitBadge(p) : "価格の情報なし") + '</div>' +
+      (reasons && reasons.length ? '<p class="reason">' + reasons.map(esc).join("<br />") + "</p>" : "") + sysWhy +
+      '<div class="card-foot">' + (p._hasIng ? "全成分を見る ›" : "詳細を見る ›") + '</div>';
+    b.addEventListener("click", function () { openSheet(p); });
+    return b;
+  }
+
+  function renderResults() {
+    const cur = state.current ? BY_ID[state.current] : null;
+    const cb = $("currentBox"); cb.innerHTML = "";
+    if (cur) {
+      const d = document.createElement("div");
+      d.className = "current-box";
+      d.innerHTML = '<div class="current-label">今の製品の目安<button type="button" class="clear-btn" aria-label="今の製品を外す">外す</button></div>' +
+        '<div class="cname">' + esc(cur.name) + '</div>' + (brandOf(cur) ? '<div class="pbrand">' + esc(brandOf(cur)) + '</div>' : '') +
+        '<div class="card-attrs">' + attrTags(cur) + '</div>' +
+        (cur._sys.length ? '<div class="muted-note" style="font-size:12px">系統の判定に使った成分：' + esc(cur._sysIngs.join("・")) + "</div>" : "") +
+        (!cur._hasIng ? '<div class="muted-note" style="font-size:12px">成分調査中のため、洗浄力の目安・系統は判定していません。</div>' : "") +
+        '<div class="muted-note" style="font-size:12px;margin-top:4px">この製品は候補から除いています。<a href="#" class="see-ing">全成分を見る</a></div>';
+      d.querySelector(".clear-btn").addEventListener("click", function () { setCurrent(cur._id); });
+      d.querySelector(".see-ing").addEventListener("click", function (e) { e.preventDefault(); openSheet(cur); });
+      cb.appendChild(d);
+    }
+    const tags = [];
+    ISSUES.forEach(function (i) { if (state.issues[i.id]) tags.push(i.label); });
+    tags.push("剤型：" + (state.tex || "指定なし"));
+    if (state.cap != null) tags.push("価格の上限：〜" + state.cap.toLocaleString() + "円");
+    $("condSummary").innerHTML = tags.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("");
+
+    const r = results();
+    $("relaxNote").innerHTML = r.relaxed && r.list.length
+      ? '<div class="relax-note">選んだ不満点のすべてに合う候補はデータ内にありませんでした。条件を少し緩めて、合う不満点が多い順に表示しています（カードに、どの不満点に合うかを書いています）。</div>' : "";
+    const area = $("resultArea"); area.innerHTML = "";
+    const all = r.list.concat(r.pending.map(function (p) { return { p: p, hit: [], pending: true }; }));
+    if (!all.length) {
+      area.innerHTML = '<div class="empty-note">条件に合う製品はデータ内にありませんでした。' +
+        (state.tex ? "剤型を「指定なし」にすると見つかることがあります。" : "") + (state.cap != null ? "価格の上限を上げると見つかることがあります。" : "") +
+        (r.on.length ? "不満点のチップを外すと、ほかの製品も表示されます。" : "") + "</div>";
+      return;
+    }
+    const shown = all.slice(0, state.limit);
+    const cnt = document.createElement("p"); cnt.className = "hit-count"; cnt.style.margin = "0 2px 8px";
+    cnt.textContent = r.list.length + "件" + (r.pending.length ? "＋成分調査中 " + r.pending.length + "件" : "") + (all.length > shown.length ? "（" + shown.length + "件を表示中）" : "");
+    area.appendChild(cnt);
+    shown.forEach(function (x) {
+      let reasons = x.hit.map(function (i) { return i.why(x.p, cur); });
+      if (r.relaxed) reasons = reasons.map(function (t, k) { return "「" + x.hit[k].label + "」に合う目安：" + t; });
+      area.appendChild(card(x.p, reasons));
+    });
+    if (all.length > shown.length) {
+      const more = document.createElement("button");
+      more.type = "button"; more.className = "more-btn"; more.style.width = "100%";
+      more.textContent = "さらに表示（残り " + (all.length - shown.length) + "件）";
+      more.addEventListener("click", function () { state.limit += PAGE; renderResults(); });
+      area.appendChild(more);
+    }
+  }
+
+  // ---------- 全成分シート ----------
+  const sheet = $("sheet");
+  let sheetProduct = null;
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    return new Promise(function (resolve, reject) {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+      sheet.appendChild(ta); ta.select();
+      try { document.execCommand("copy") ? resolve() : reject(); } catch (e) { reject(e); }
+      sheet.removeChild(ta);
+    });
+  }
+  $("copyBtn").addEventListener("click", function () {
+    if (!sheetProduct) return;
+    const text = copyName(sheetProduct);
+    copyText(text).then(function () { $("copyDone").textContent = "コピーしました"; }, function () { $("copyDone").textContent = "コピーできませんでした：" + text; });
+  });
+  function openSheet(p) {
+    $("sheetType").textContent = p.type;
+    $("sheetTitle").textContent = p.name;
+    $("sheetBrand").textContent = brandOf(p);
+    $("sheetMemo").textContent = p.memo ? "メモ：" + p.memo : "";
+    $("sheetPrices").innerHTML = p.prices.length
+      ? '<ul class="price-list">' + p.prices.map(function (v, i) {
+          return "<li>" + esc(v.price || "価格不明") + " ／ " + esc(v.volume || "容量不明") + (i === 0 ? unitBadge(p) : "") + "</li>";
+        }).join("") + '<li class="pnote">価格は税込の目安です（掲載時点）。1ml／1gあたりの価格は先頭の価格・容量で計算しています。</li></ul>'
+      : '<ul class="price-list"><li>価格・容量の情報はありません</li></ul>';
+    sheetProduct = p;
+    $("sheetAttrs").innerHTML = attrTags(p);
+    $("copyDone").textContent = "";
+    $("sheetList").innerHTML = p._hasIng
+      ? p.ingredients.map(function (n) {
+          const hit = p._sysIngs.indexOf(nfkc(n)) !== -1;
+          const act = p.actives && p.actives.indexOf(n) !== -1 ? '<i class="act">有効成分</i>' : "";
+          return '<li class="' + (hit ? "hit" : "") + '"><div>' + esc(n) + act + "</div>" + (hit ? "<span>系統の判定に使用</span>" : "") + "</li>";
+        }).join("")
+      : '<li style="border:0;padding:0"><p class="pending-note">成分調査中です。全成分はまだ登録されていません。</p></li>';
+    if (typeof sheet.showModal === "function") sheet.showModal(); else sheet.setAttribute("open", "");
+  }
+  function closeSheet() { if (typeof sheet.close === "function") sheet.close(); else sheet.removeAttribute("open"); }
+  $("sheetClose").addEventListener("click", closeSheet);
+  sheet.addEventListener("click", function (e) { if (e.target === sheet) closeSheet(); });
+
+  (function () {
+    const nC = CL.filter(function (p) { return p.type === "クレンジング"; }).length, nW = CL.length - nC;
+    const withIng = CL.filter(function (p) { return p._hasIng; }).length;
+    $("countLine").innerHTML = "対象製品 <b>" + CL.length.toLocaleString() + "件</b>（クレンジング " + nC + "件・洗顔 " + nW + "件。うち成分登録済み <b>" + withIng.toLocaleString() + "件</b>）";
+  })();
+
+  function render() { buildInputs(); renderResults(); }
+  $("productSearch").addEventListener("input", function (e) { state.query = e.target.value; state.plimit = PAGE; buildProductList(); });
+  render();
+})();
+</script>
+</body>
+</html>
