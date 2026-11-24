@@ -191,6 +191,20 @@
   .full-list .act { font-style: normal; font-size: 11px; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 0 6px; margin-left: 6px; white-space: nowrap; }
   .sheet-memo { font-size: 12.5px; background: var(--surface-2); border-radius: 8px; padding: 8px 10px; margin: 12px 0 0; }
   .sheet-memo:empty { display: none; }
+  /* 落とし方の目安 */
+  .remove-box { margin: 4px 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  .remove-box h5 { margin: 0 0 6px; font-size: 14px; }
+  .remove-level { display: inline-block; font-size: 12.5px; font-weight: 800; color: var(--accent-ink); background: var(--accent); border-radius: 6px; padding: 1px 8px; margin-bottom: 6px; }
+  .remove-why { margin: 0 0 6px; padding-left: 1.2em; font-size: 13px; }
+  .remove-why li { margin: 2px 0; }
+  .remove-guide { margin: 0 0 8px; font-size: 13.5px; }
+  .remove-guide b { color: var(--accent); }
+  .remove-cands { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  .remove-cands li { padding: 6px 8px; background: var(--surface-2); border-radius: 8px; font-size: 13px; line-height: 1.5; }
+  .remove-cands .rc-name { font-weight: 700; }
+  .remove-cands .rc-sub { color: var(--muted); font-size: 12px; }
+  .remove-cands .attr { display: inline-block; margin: 2px 4px 0 0; }
+  .remove-note { margin: 8px 0 0; font-size: 11.5px; color: var(--muted); line-height: 1.6; }
   .count-line { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
   .count-line b { color: var(--ink); }
   .pprice { display: block; font-size: 12px; color: var(--ink); line-height: 1.45; }
@@ -316,6 +330,7 @@
     </div>
     <p class="sheet-attrs" id="sheetAttrs"></p>
     <div id="sheetPrices"></div>
+    <section class="remove-box" id="sheetRemove" aria-label="落とし方の目安"></section>
     <ul class="full-list" id="sheetList"></ul>
     <p class="sheet-memo" id="sheetMemo"></p>
     <p class="sheet-note">印の付いた成分は紫外線吸収剤（このページの判定に使う成分）です。成分名は一般的な表示名にそろえています。</p>
@@ -680,6 +695,73 @@ const SOAP_NOTE = "製品データに「石けんで落とせる」「洗顔料�
     copyText(text).then(function () { $("copyDone").textContent = "コピーしました"; },
       function () { $("copyDone").textContent = "コピーできませんでした：" + text; });
   });
+  // ---------- 落とし方の目安（落としにくさの段階 × クレンジングの洗浄力の段階） ----------
+  // 洗浄力の段階はクレンジング・洗顔ページと同じ（剤型 texture から）
+  const CL_STRENGTH = { "オイル": 3, "バーム": 3, "ジェル": 2, "クリーム": 2, "泡": 2, "パウダー": 2, "ミルク": 1, "リキッド": 1, "シート": 1 };
+  const CL_STRENGTH_LABEL = { 3: "強め", 2: "中くらい", 1: "マイルド寄り" };
+  // 皮膜形成剤の目安：名前に「トリメチルシロキシケイ酸」を含むもの／「アクリレーツ」を含むクロスポリマー類
+  const isFilmFormer = function (n) {
+    return n.indexOf("トリメチルシロキシケイ酸") !== -1 || (n.indexOf("アクリレーツ") !== -1 && n.indexOf("クロスポリマー") !== -1);
+  };
+  const REMOVE_LEVEL = {
+    hard:   { label: "落としにくい傾向", guide: "<b>強め</b>（オイル・バーム）のクレンジングが目安です。" },
+    normal: { label: "通常", guide: "<b>中くらい以上</b>（ジェル・クリーム・泡・パウダー、またはオイル・バーム）のクレンジングが目安です。" },
+    soap:   { label: "洗顔・石けんで落とせる目安", guide: "<b>洗顔料でも落とせる目安</b>です（表示の記録にもとづく）。" }
+  };
+  function removeLevel(p) {
+    const why = [];
+    const films = p._hasIng ? Array.from(new Set(p.ingredients.filter(isFilmFormer))) : [];
+    if (p.waterproof) why.push("ウォータープルーフ表示があります" + (wpText(p) !== "ウォータープルーフ" ? "（" + wpText(p) + "）" : ""));
+    if (films.length) why.push("皮膜形成剤（" + films.join("、") + "）が入っています");
+    if (why.length) return { level: "hard", why: why };
+    if (p.soap) return { level: "soap", why: ["「" + (p.soap === true ? "石けんで落とせる" : p.soap) + "」という表示の記録があります"] };
+    return { level: "normal", why: [p._hasIng
+      ? "ウォータープルーフ表示がなく、目安にしている皮膜形成剤も成分表に見当たりません"
+      : "ウォータープルーフ表示がありません（成分が未登録のため、皮膜形成剤は確認できていません）"] };
+  }
+  // 候補：成分登録済みで価格のわかる製品から、剤型が偏らないように順に選ぶ（同じ剤型の中ではデータの並び順）
+  const CL_POOL = ALL.filter(function (p) { return p._hasIng && p.prices.length && p.prices[0].price; });
+  function pickRoundRobin(list, order, n, prefer) {
+    const by = {};
+    order.forEach(function (t) { by[t] = list.filter(function (p) { return p.texture === t; }).sort(function (a, b) { return (prefer ? (prefer(b) - prefer(a)) : 0); }); });
+    const out = [];
+    for (let i = 0; out.length < n && i < 50; i++) {
+      order.forEach(function (t) { if (out.length < n && by[t][i]) out.push(by[t][i]); });
+    }
+    return out;
+  }
+  const CL_CANDS = {
+    // 落としにくい：強め（オイル・バーム）。「ウォータープルーフメイク対応」表示のあるものを先に
+    hard: pickRoundRobin(CL_POOL.filter(function (p) { return p.type === "クレンジング"; }), ["オイル", "バーム"], 3,
+      function (p) { return p.waterproof ? 1 : 0; }),
+    // 通常：中くらい以上
+    normal: pickRoundRobin(CL_POOL.filter(function (p) { return p.type === "クレンジング"; }), ["ジェル", "オイル", "クリーム", "バーム", "泡", "パウダー"], 3),
+    // 石けんで落とせる：洗顔料
+    soap: pickRoundRobin(CL_POOL.filter(function (p) { return p.type === "洗顔"; }), ["泡", "クリーム", "ジェル", "リキッド", "ミルク", "パウダー", "固形石けん", "洗顔フォーム", "バーム", "オイル", "その他"], 3)
+  };
+  function renderRemove(p) {
+    const r = removeLevel(p), L = REMOVE_LEVEL[r.level], cands = CL_CANDS[r.level];
+    const candHtml = cands.length
+      ? '<ul class="remove-cands">' + cands.map(function (c) {
+          const st = CL_STRENGTH[c.texture];
+          return "<li><div class=\"rc-name\">" + esc(c.name) + "</div>" +
+            '<div class="rc-sub">' + esc(brandOf(c) || "メーカー不明") + (priceText(c) ? "　" + esc(priceText(c)) : "") + "</div>" +
+            "<div>" + '<span class="attr">剤型：' + esc(c.texture || "不明") + "</span>" +
+            (st ? '<span class="attr">洗浄力の目安：' + CL_STRENGTH_LABEL[st] + "</span>" : "") +
+            (c.waterproof ? '<span class="attr">' + esc(c.waterproof === true ? "ウォータープルーフメイク対応" : c.waterproof) + "</span>" : "") + "</div></li>";
+        }).join("") + "</ul>"
+      : '<p class="remove-note">この段階に合う候補は、成分登録済みの製品の中にはありませんでした。</p>';
+    $("sheetRemove").innerHTML =
+      "<h5>落とし方の目安</h5>" +
+      '<span class="remove-level">' + esc(L.label) + "</span>" +
+      '<ul class="remove-why">' + r.why.map(function (w) { return "<li>" + esc(w) + "</li>"; }).join("") + "</ul>" +
+      '<p class="remove-guide">' + L.guide + "</p>" +
+      '<div class="sub-label" style="margin:0 0 6px">' + (r.level === "soap" ? "洗顔料の例（成分登録済み）" : "この段階のクレンジングの例（成分登録済み）") + "</div>" +
+      candHtml +
+      '<p class="remove-note">※ 製品どうしの相性ではなく、日焼け止めの落としにくさの段階と、クレンジングの剤型から見た洗浄力の段階を合わせた目安です。実際の落ち方は量や使い方によって変わります。<br />' +
+      "※ ウォータープルーフの日焼け止めは、クレンジングオイルで落としやすい傾向があったという研究報告があります（Journal of Cosmetic Dermatology, 2020。20人を対象にした試験）。</p>";
+  }
+
   function openSheet(p) {
     $("sheetType").textContent = p.type;
     $("sheetTitle").textContent = p.name;
@@ -698,6 +780,7 @@ const SOAP_NOTE = "製品データに「石けんで落とせる」「洗顔料�
       (p.soap ? '<span class="attr">' + esc(p.soap === true ? "石けんで落とせる（表示）" : p.soap) + '</span>' : "") +
       (p._hasIng ? '<span class="attr">' + (p._abs && p._abs.length ? "紫外線吸収剤 " + p._abs.length + "成分" : "紫外線吸収剤なし（ノンケミカル）") + '</span>' : "");
     $("copyDone").textContent = "";
+    renderRemove(p);
     $("sheetList").innerHTML = p._hasIng
       ? p.ingredients.map(function (n) {
           const abs = isAbsorber(n);
