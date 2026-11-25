@@ -10,6 +10,7 @@ const PAGES = [
   { id: "skincare",  href: "index.html",     label: "スキンケア" },
   { id: "sunscreen", href: "sunscreen.html", label: "日焼け止め" },
   { id: "cleansing", href: "cleansing.html", label: "クレンジング・洗顔" },
+  { id: "haircare",  href: "haircare.html",  label: "ヘアケア" },
 ];
 
 (function () {
@@ -32,7 +33,8 @@ const PAGES = [
       ".page-tabs a:hover { color: var(--ink); }",
       ".page-tabs a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }",
       ".page-tabs a[aria-current=\"page\"] { color: var(--accent); border-bottom-color: var(--accent); background: var(--accent-soft); }",
-      "@media (max-width: 360px) { .page-tabs ul { gap: 2px; } .page-tabs a { padding: 10px 6px 8px; font-size: 12.5px; } }",
+      "@media (max-width: 420px) { .page-tabs ul { gap: 2px; } .page-tabs a { padding: 10px 5px 8px; font-size: 12px; } }",
+      "@media (max-width: 340px) { .page-tabs ul { gap: 0; } .page-tabs a { padding: 10px 4px 8px; font-size: 11px; white-space: normal; word-break: keep-all; line-height: 1.3; display: flex; align-items: center; justify-content: center; height: 100%; } .page-tabs li { display: flex; flex: 1 1 auto; min-width: 0; } .page-tabs li > a { flex: 1; } }",
     ].join("\n");
     document.head.appendChild(st);
   }
@@ -44,10 +46,17 @@ const PAGES = [
     const li = document.createElement("li");
     const a = document.createElement("a");
     a.href = p.href;
-    a.textContent = p.label;
+    // 「・」のところで折り返せるようにする（とても狭い画面だけ）
+    p.label.split("・").forEach(function (t, i) {
+      if (i) { a.appendChild(document.createTextNode("・")); a.appendChild(document.createElement("wbr")); }
+      a.appendChild(document.createTextNode(t));
+    });
     if (p.id === current) a.setAttribute("aria-current", "page");
     li.appendChild(a);
     ul.appendChild(li);
   });
   nav.replaceChildren(ul);
+  // タブが画面幅に収まらないときは、今のページのタブが見える位置まで横にずらす
+  const curA = ul.querySelector('a[aria-current="page"]');
+  if (curA && ul.scrollWidth > ul.clientWidth) ul.scrollLeft = Math.max(0, curA.parentNode.offsetLeft - 20);
 })();

@@ -337,8 +337,11 @@
   </div>
 </dialog>
 
-<!-- 製品データは products.js（本体ページと日焼け止めページで共通） -->
+<!-- 製品データは products.js（本体ページ・日焼け止めページ・クレンジング・洗顔ページで共通） -->
 <script src="products.js"></script>
+<!-- ヘアケア製品は products-hair.js。PRODUCTS に足して、名前検索・成分名で探す・今使っている製品の選択肢から辿れるようにする -->
+<script src="products-hair.js"></script>
+<script>if (typeof PRODUCTS_HAIR !== "undefined") Array.prototype.push.apply(PRODUCTS, PRODUCTS_HAIR);</script>
 <!-- =====================================================================
      日焼け止めページの設定（ここは後から調整可）
      ===================================================================== -->
@@ -798,7 +801,8 @@ const SOAP_NOTE = "製品データに「石けんで落とせる」「洗顔料�
   (function () {
     const withIng = SUN.filter(function (p) { return p._hasIng; }).length;
     $("countLine").innerHTML = "対象製品 <b>" + SUN.length.toLocaleString() + "件</b>（種類が日焼け止めの製品と、SPF表示のある製品。ファンデーションは除く。うち成分登録済み <b>" +
-      withIng.toLocaleString() + "件</b>）";
+      withIng.toLocaleString() + "件</b>）" +
+      "<br />読み込んだ登録製品は全 " + ALL.length.toLocaleString() + "件" + (typeof PRODUCTS_HAIR !== "undefined" ? "（ヘアケア " + PRODUCTS_HAIR.length.toLocaleString() + "件を含む）" : "") + "です。";
     $("absorberList").textContent = "※ 紫外線吸収剤として扱う成分：" + UV_ABSORBERS.map(function (a) { return a.label; }).join("、") + "。";
   })();
 

@@ -394,8 +394,11 @@
   </div>
 </dialog>
 
-<!-- 製品データは products.js（本体ページと日焼け止めページで共通） -->
+<!-- 製品データは products.js（本体ページ・日焼け止めページ・クレンジング・洗顔ページで共通） -->
 <script src="products.js"></script>
+<!-- ヘアケア製品は products-hair.js。PRODUCTS に足して、名前検索・成分名で探す・今使っている製品の選択肢から辿れるようにする -->
+<script src="products-hair.js"></script>
+<script>if (typeof PRODUCTS_HAIR !== "undefined") Array.prototype.push.apply(PRODUCTS, PRODUCTS_HAIR);</script>
 
 <!-- =====================================================================
      成分グループと対応表（ここも後から調整可）
@@ -446,7 +449,8 @@ const PRICE_CAPS = [
   { label: "〜5,000円", value: 5000 },
   { label: "〜10,000円", value: 10000 }
 ];
-const TYPE_ORDER = ["化粧水", "美容液", "乳液", "クリーム", "日焼け止め", "化粧下地", "ファンデーション", "フェイスパウダー", "クレンジング", "洗顔", "その他", "種類未判定"];
+const TYPE_ORDER = ["化粧水", "美容液", "乳液", "クリーム", "日焼け止め", "化粧下地", "ファンデーション", "フェイスパウダー", "クレンジング", "洗顔", "その他", "種類未判定", "シャンプー", "トリートメント", "ヘアケアその他"];
+// ↑ ヘアケアの種類は並び順のためだけに入れている（おすすめ・種類の絞り込みには使わない。REC_TYPES を参照）
 // おすすめ候補の対象にする種類（日焼け止め・化粧下地などと「その他」は対象外）
 const REC_TYPES = ["化粧水", "美容液", "乳液", "クリーム"];
 
@@ -1033,7 +1037,8 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
   // ---------- 件数表示 ----------
   (function () {
     const withIng = PRODUCTS.filter(function (p) { return p._hasIng; }).length;
-    $("countLine").innerHTML = "登録製品 <b>" + PRODUCTS.length.toLocaleString() + "件</b>（うち成分登録済み <b>" +
+    const nHair = typeof PRODUCTS_HAIR !== "undefined" ? PRODUCTS_HAIR.length : 0;
+    $("countLine").innerHTML = "登録製品 <b>" + PRODUCTS.length.toLocaleString() + "件</b>（" + (nHair ? "ヘアケア " + nHair.toLocaleString() + "件を含む。" : "") + "うち成分登録済み <b>" +
       withIng.toLocaleString() + "件</b>。ほかは成分調査中）";
   })();
 
