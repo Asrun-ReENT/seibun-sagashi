@@ -286,7 +286,7 @@
     </fieldset>
 
     <fieldset>
-      <legend>価格の上限<span class="opt">代表価格（税込の目安）で判定</span></legend>
+      <legend>上限価格<span class="opt">代表価格（税込の目安）で判定</span></legend>
       <div class="chips" id="capChips"></div>
       <p class="muted-note" id="capNote" style="margin:6px 0 0;font-size:12px"></p>
     </fieldset>
@@ -631,7 +631,7 @@ const SOAP_NOTE = "製品データに「石けんで落とせる」「洗顔料�
     tags.push("使用部位：" + (state.area || "気にしない"));
     FEATS.forEach(function (f) { if (state.feats[f.id]) tags.push(f.label); });
     if (state.spf != null) tags.push("SPF" + state.spf + "以上");
-    if (state.cap != null) tags.push("価格の上限：〜" + state.cap.toLocaleString() + "円");
+    if (state.cap != null) tags.push("上限価格：〜" + state.cap.toLocaleString() + "円");
     $("condSummary").innerHTML = tags.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("");
 
     const area = $("resultArea"); area.innerHTML = "";

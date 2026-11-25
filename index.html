@@ -132,6 +132,12 @@
   .cond-summary { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
   .tag { font-size: 12.5px; font-weight: 700; padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); }
   .result-block { margin-bottom: 22px; }
+  /* 価格の見せ方の切り替え（上限価格で絞る／価格帯で比べる） */
+  .price-mode { display: flex; gap: 0; margin: 4px 0 12px; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface-2); }
+  .price-mode button { flex: 1; border: 0; background: transparent; border-radius: 999px; padding: 9px 6px; font: inherit; font-size: 13.5px; font-weight: 700; color: var(--muted); cursor: pointer; }
+  .price-mode button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .price-mode button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  [hidden] { display: none !important; }
   /* 価格帯の3つのおすすめ */
   .band-ctrl { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface-2); margin-bottom: 10px; }
   .band-target { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; }
@@ -273,8 +279,8 @@
       <div class="target-guide" id="targetGuide" aria-live="polite"></div>
     </fieldset>
 
-    <fieldset>
-      <legend>価格の上限<span class="opt">代表価格（税込の目安）で判定</span></legend>
+    <fieldset id="capFieldset">
+      <legend>上限価格<span class="opt">代表価格（税込の目安）で判定</span></legend>
       <div class="chips" id="capChips"></div>
       <p class="muted-note" id="capNote" style="margin:6px 0 0;font-size:12px"></p>
     </fieldset>
@@ -313,12 +319,17 @@
   <section class="panel" aria-label="結果" aria-live="polite">
     <h2>成分で見た結果</h2>
     <p class="lead">選ぶたびに自動で更新されます。</p>
+    <!-- 価格の見せ方の切り替え（その画面を開いている間は保持） -->
+    <div class="price-mode" id="priceMode" role="group" aria-label="価格の見せ方">
+      <button type="button" data-mode="cap" aria-pressed="true">上限価格で絞る</button>
+      <button type="button" data-mode="band" aria-pressed="false">価格帯で比べる</button>
+    </div>
     <div class="cond-summary" id="condSummary"></div>
 
     <!-- 価格帯の3つのおすすめ（下の候補リストとは別の見せ方。置き換えではない） -->
-    <div class="result-block" id="bandBlock">
+    <div class="result-block" id="bandBlock" hidden>
       <h3><span class="dot dot-rec"></span><span id="bandTitle">価格帯の3つのおすすめ</span></h3>
-      <p class="sub">「次に探しているもの」の候補（下のおすすめ候補と同じ絞り込みを通ったもの）から、狙い価格のまわりの価格帯で3件を選びます。価格がわかる製品だけが対象です。</p>
+      <p class="sub">「次に探しているもの」の候補（肌質・気になること・合わない可能性のある成分の除外などの条件を通ったもの）から、狙い価格のまわりの価格帯で3件を選びます。上限価格は使わず、帯の範囲で絞ります。価格がわかる製品だけが対象です。</p>
       <div class="band-ctrl">
         <div class="band-target"><span>狙い価格</span><b id="bandTargetText"></b></div>
         <p class="band-from" id="bandFrom"></p>
@@ -348,7 +359,7 @@
       <div id="overlapArea"></div>
     </div>
 
-    <div class="result-block">
+    <div class="result-block" id="recBlock">
       <h3><span class="dot dot-rec"></span><span id="recTitle">おすすめ候補</span></h3>
       <p class="sub">足りていない成分グループを多く含む順に最大3件（成分登録済みの化粧水・美容液・乳液・クリームから）。タップすると全成分が見られます。</p>
       <div id="recBanner"></div>
@@ -508,7 +519,8 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
   const state = { age: null, skin: {}, concerns: {}, target: "all", products: {}, query: "", limit: PAGE, cap: null,
                   bad: {}, badQuery: "", badLimit: PAGE, excludeBad: true,
                   bandTarget: null,             // null のあいだは自動（今使っている製品の代表価格、なければ BAND_DEFAULT）
-                  bandWidth: BAND_WIDTH_DEFAULT };
+                  bandWidth: BAND_WIDTH_DEFAULT,
+                  priceMode: "cap" };          // "cap"＝上限価格で絞る（初期）／"band"＝価格帯で比べる
 
   const $ = function (id) { return document.getElementById(id); };
   const esc = function (s) {
@@ -544,10 +556,13 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
     return isFinite(n) && n > 0 ? n : null;
   };
   // 価格の上限に収まるか（上限なしなら常に true、価格不明は上限ありのとき除外）
+  // 「価格帯で比べる」のときは上限価格を使わない（チップも隠れる。帯の範囲が絞り込みの代わり）
+  const capNow = function () { return state.priceMode === "cap" ? state.cap : null; };
   const withinCap = function (p) {
-    if (state.cap == null) return true;
+    const cap = capNow();
+    if (cap == null) return true;
     const n = repPrice(p);
-    return n != null && n <= state.cap;
+    return n != null && n <= cap;
   };
   // 1ml／1gあたりの価格（代表バリエーション）。計算できなければ ""
   const unitPrice = function (p) {
@@ -749,14 +764,14 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
     const capped = matched.length - hits.length;
     if (hits.length === 0) {
       box.innerHTML = '<p class="no-hit">「' + esc(state.query.trim()) + '」に合う製品は見つかりませんでした。' +
-        (capped ? "（価格の上限で " + capped + "件を除いています）" : "") + '</p>';
+        (capped ? "（上限価格で " + capped + "件を除いています）" : "") + '</p>';
       return;
     }
     const shown = hits.slice(0, state.limit);
     const cnt = document.createElement("p");
     cnt.className = "hit-count";
     cnt.textContent = hits.length + "件見つかりました" + (hits.length > shown.length ? "（" + shown.length + "件を表示中）" : "") +
-      (capped ? "／価格の上限で " + capped + "件を除外" : "");
+      (capped ? "／上限価格で " + capped + "件を除外" : "");
     box.appendChild(cnt);
     shown.forEach(function (p) {
       const on = !!state.products[p._id];
@@ -906,7 +921,7 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
     const bad = badProducts();
     if (bad.length) tags.push("合わなかった製品 " + bad.length + "点");
     tags.push("探しているもの：" + tgt.label);
-    if (state.cap != null) tags.push("価格の上限：〜" + state.cap.toLocaleString() + "円");
+    if (capNow() != null) tags.push("上限価格：〜" + state.cap.toLocaleString() + "円");
     $("condSummary").innerHTML = tags.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("");
 
     const desired = desiredGroups();
@@ -1032,7 +1047,7 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
       if (scored.length === 0) {
         rArea.innerHTML = exclNote + '<div class="empty-note">' + (isAll ? "" : esc(tgt.label) + "の中には、") +
           "足りていない成分を含む候補がデータ内にありませんでした。" + (isAll ? "" : "「おまかせ」にすると他の種類からも探せます。") +
-          (state.cap != null ? "価格の上限を上げると見つかることがあります。" : "") +
+          (capNow() != null ? "上限価格を上げると見つかることがあります。" : "") +
           (excludedN ? "「合わない可能性のある成分を含む製品を除く」を外すと、外した製品も候補に戻ります。" : "") + "</div>";
       } else {
         if (exclNote) rArea.insertAdjacentHTML("beforeend", exclNote);
@@ -1184,7 +1199,22 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
   }
 
   // ---------- 起動 ----------
-  function render() { buildInputs(); buildBadInputs(); renderResults(); }
+  function applyPriceMode() {
+    const band = state.priceMode === "band";
+    $("bandBlock").hidden = !band;
+    $("recBlock").hidden = band;
+    $("capFieldset").hidden = band;
+    Array.prototype.forEach.call($("priceMode").querySelectorAll("button"), function (b) {
+      b.setAttribute("aria-pressed", b.getAttribute("data-mode") === state.priceMode ? "true" : "false");
+    });
+  }
+  Array.prototype.forEach.call($("priceMode").querySelectorAll("button"), function (b) {
+    b.addEventListener("click", function () {
+      if (state.priceMode === b.getAttribute("data-mode")) return;
+      state.priceMode = b.getAttribute("data-mode"); state.limit = PAGE; render();
+    });
+  });
+  function render() { applyPriceMode(); buildInputs(); buildBadInputs(); renderResults(); }
   $("productSearch").addEventListener("input", function (e) { state.query = e.target.value; state.limit = PAGE; buildProductList(); });
   $("badSearch").addEventListener("input", function (e) { state.badQuery = e.target.value; state.badLimit = PAGE; buildBadList(); });
   render();

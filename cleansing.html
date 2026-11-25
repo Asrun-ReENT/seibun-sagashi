@@ -267,7 +267,7 @@
     </fieldset>
 
     <fieldset>
-      <legend>価格の上限<span class="opt">代表価格（税込の目安）で判定</span></legend>
+      <legend>上限価格<span class="opt">代表価格（税込の目安）で判定</span></legend>
       <div class="chips" id="capChips"></div>
       <p class="muted-note" id="capNote" style="margin:6px 0 0;font-size:12px"></p>
     </fieldset>
@@ -581,7 +581,7 @@ const PRICE_CAPS = [
     const tags = [];
     ISSUES.forEach(function (i) { if (state.issues[i.id]) tags.push(i.label); });
     tags.push("剤型：" + (texSel().length ? texSel().join("／") : "指定なし"));
-    if (state.cap != null) tags.push("価格の上限：〜" + state.cap.toLocaleString() + "円");
+    if (state.cap != null) tags.push("上限価格：〜" + state.cap.toLocaleString() + "円");
     $("condSummary").innerHTML = tags.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("");
 
     const r = results();
@@ -591,7 +591,7 @@ const PRICE_CAPS = [
     const all = r.list.concat(r.pending.map(function (p) { return { p: p, hit: [], pending: true }; }));
     if (!all.length) {
       area.innerHTML = '<div class="empty-note">条件に合う製品はデータ内にありませんでした。' +
-        (texSel().length ? "剤型の選択を外すと見つかることがあります。" : "") + (state.cap != null ? "価格の上限を上げると見つかることがあります。" : "") +
+        (texSel().length ? "剤型の選択を外すと見つかることがあります。" : "") + (state.cap != null ? "上限価格を上げると見つかることがあります。" : "") +
         (r.on.length ? "不満点のチップを外すと、ほかの製品も表示されます。" : "") + "</div>";
       return;
     }
