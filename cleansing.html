@@ -247,9 +247,7 @@
 
     <fieldset>
       <legend>今使っているクレンジング／洗顔<span class="opt">任意・1つ</span></legend>
-      <span class="sub-label">よく使われる候補</span>
-      <div class="chips" id="quickChips"></div>
-      <label class="sub-label" for="productSearch">製品名・メーカーで検索</label>
+      <label class="sub-label" for="productSearch" style="margin-top:0">製品名・メーカーで検索</label>
       <div class="search-box">
         <input type="search" id="productSearch" placeholder="製品名・メーカー（例：ファンケル）" autocomplete="off" enterkeyhint="search" />
       </div>
@@ -321,15 +319,6 @@
      クレンジング・洗顔ページの設定（ここは後から調整可）
      ===================================================================== -->
 <script>
-// 「よく使われる候補」チップ（製品名と、メーカー欄に含まれる語で指定）
-const CL_QUICK = [
-  { label: "ファンケル マイルドクレンジングオイル", name: "マイルドクレンジング オイル", maker: "ファンケル" },
-  { label: "DUO ザ クレンジングバーム", name: "ザ クレンジングバーム", maker: "DUO" },
-  { label: "ビオレ ザクレンズオイル", name: "ザ クレンズ オイルメイク落とし", maker: "ビオレ" },
-  { label: "キュレル ジェルメイク落とし", name: "ジェルメイク落とし", maker: "キュレル" },
-  { label: "ソフティモ スピーディ クレンジングオイル", name: "スピーディ クレンジングオイル", maker: "ソフティモ" },
-  { label: "ちふれ ウォッシャブル コールド クリーム", name: "ウォッシャブル コールド クリーム", maker: "ちふれ" }
-];
 // 剤型 → 洗浄力の目安（3＝強め、2＝中くらい、1＝マイルド寄り）。ここにない剤型は目安なし
 const STRENGTH = { "オイル": 3, "バーム": 3, "ジェル": 2, "クリーム": 2, "泡": 2, "パウダー": 2, "ミルク": 1, "リキッド": 1, "シート": 1 };
 const STRENGTH_LABEL = { 3: "強め", 2: "中くらい", 1: "マイルド寄り" };
@@ -496,13 +485,10 @@ const PRICE_CAPS = [
     b.addEventListener("click", onClick);
     return b;
   }
-  const findQuick = function (q) { return CL.find(function (p) { return p.name === q.name && String(p.maker).indexOf(q.maker) !== -1; }); };
   function setCurrent(id) { state.current = state.current === id ? null : id; state.limit = PAGE; render(); }
   const texCount = function (t) { return CL.filter(function (p) { return p.texture === t; }).length; };
 
   function buildInputs() {
-    const quick = $("quickChips"); quick.innerHTML = "";
-    CL_QUICK.forEach(function (q) { const p = findQuick(q); if (p) quick.appendChild(chip(q.label, state.current === p._id, function () { setCurrent(p._id); })); });
     buildProductList();
     const ib = $("issueChips"); ib.innerHTML = "";
     ISSUES.forEach(function (i) {

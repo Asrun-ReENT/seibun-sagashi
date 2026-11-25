@@ -132,6 +132,18 @@
   .cond-summary { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
   .tag { font-size: 12.5px; font-weight: 700; padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); }
   .result-block { margin-bottom: 22px; }
+  /* 価格帯の3つのおすすめ */
+  .band-ctrl { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface-2); margin-bottom: 10px; }
+  .band-target { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; }
+  .band-target b { font-size: 17px; color: var(--accent); }
+  .band-from { font-size: 11.5px; color: var(--muted); margin: 2px 0 0; }
+  .band-range { width: 100%; margin: 10px 0 2px; accent-color: var(--accent); }
+  .band-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+  .band-width { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .band-width .lbl { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+  .band-now { margin: 8px 0 0; font-size: 13.5px; font-weight: 700; }
+  .band-slot { margin-top: 12px; }
+  .band-slot h4 { margin: 0 0 6px; font-size: 14px; font-weight: 800; }
   .result-block:last-child { margin-bottom: 0; }
   .result-block h3 { font-size: 15px; font-weight: 800; margin: 0 0 2px; display: flex; align-items: center; gap: 8px; }
   .dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
@@ -269,10 +281,7 @@
 
     <fieldset>
       <legend>今使っている製品<span class="opt">複数選択可</span></legend>
-      <span class="sub-label">よく使われる候補</span>
-      <div class="chips" id="quickChips"></div>
-
-      <label class="sub-label" for="productSearch">製品名・メーカー・シリーズで検索</label>
+      <label class="sub-label" for="productSearch" style="margin-top:0">製品名・メーカー・シリーズで検索</label>
       <div class="search-box">
         <input type="search" id="productSearch" placeholder="製品名・メーカー・シリーズ（例：キュレル）" autocomplete="off" enterkeyhint="search" />
       </div>
@@ -287,10 +296,7 @@
     <fieldset>
       <legend>合わなかった製品<span class="opt">任意・複数選択可</span></legend>
       <p class="muted-note" style="margin:0 0 8px;font-size:12.5px">選ぶと、上の「今使っている製品」と成分を比べて、合わない可能性のある成分を探します。比べるには成分が必要なため、成分登録済みの製品だけが選べます。</p>
-      <span class="sub-label">よく使われる候補</span>
-      <div class="chips" id="badQuickChips"></div>
-
-      <label class="sub-label" for="badSearch">製品名・メーカー・シリーズで検索</label>
+      <label class="sub-label" for="badSearch" style="margin-top:0">製品名・メーカー・シリーズで検索</label>
       <div class="search-box">
         <input type="search" id="badSearch" placeholder="合わなかった製品の名前（例：化粧水）" autocomplete="off" enterkeyhint="search" />
       </div>
@@ -308,6 +314,21 @@
     <h2>成分で見た結果</h2>
     <p class="lead">選ぶたびに自動で更新されます。</p>
     <div class="cond-summary" id="condSummary"></div>
+
+    <!-- 価格帯の3つのおすすめ（下の候補リストとは別の見せ方。置き換えではない） -->
+    <div class="result-block" id="bandBlock">
+      <h3><span class="dot dot-rec"></span><span id="bandTitle">価格帯の3つのおすすめ</span></h3>
+      <p class="sub">「次に探しているもの」の候補（下のおすすめ候補と同じ絞り込みを通ったもの）から、狙い価格のまわりの価格帯で3件を選びます。価格がわかる製品だけが対象です。</p>
+      <div class="band-ctrl">
+        <div class="band-target"><span>狙い価格</span><b id="bandTargetText"></b></div>
+        <p class="band-from" id="bandFrom"></p>
+        <input type="range" class="band-range" id="bandRange" min="1000" max="10000" step="500" aria-label="狙い価格（1,000〜10,000円）" />
+        <div class="band-scale"><span>1,000円</span><span>10,000円</span></div>
+        <div class="band-width"><span class="lbl">幅</span><span class="chips" id="bandWidthChips"></span></div>
+        <p class="band-now" id="bandNow"></p>
+      </div>
+      <div id="bandArea"></div>
+    </div>
 
     <div class="result-block">
       <h3><span class="dot dot-bad"></span>合わない可能性のある成分</h3>
@@ -441,6 +462,11 @@ const TARGETS = [
   { id: "乳液",    label: "乳液",     role: "化粧水のあとに使い、水分と油分のバランスを整えるもの。" },
   { id: "クリーム", label: "クリーム", role: "お手入れの最後に使う油分多めのもの。うるおいを閉じ込める役割です。" }
 ];
+// 価格帯の3つのおすすめ：狙い価格（選んでいる製品がなければこの値）と、幅の選択肢
+const BAND_DEFAULT = 3000;
+const BAND_MIN = 1000, BAND_MAX = 10000, BAND_STEP = 500;
+const BAND_WIDTHS = [500, 1000, 2000];
+const BAND_WIDTH_DEFAULT = 1000;
 // 価格の上限（円）。null は上限なし
 const PRICE_CAPS = [
   { label: "上限なし", value: null },
@@ -480,7 +506,9 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
 
   const PAGE = 30; // 検索結果を一度に出す件数
   const state = { age: null, skin: {}, concerns: {}, target: "all", products: {}, query: "", limit: PAGE, cap: null,
-                  bad: {}, badQuery: "", badLimit: PAGE, excludeBad: true };
+                  bad: {}, badQuery: "", badLimit: PAGE, excludeBad: true,
+                  bandTarget: null,             // null のあいだは自動（今使っている製品の代表価格、なければ BAND_DEFAULT）
+                  bandWidth: BAND_WIDTH_DEFAULT };
 
   const $ = function (id) { return document.getElementById(id); };
   const esc = function (s) {
@@ -608,11 +636,6 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
       ? "価格がわからない製品も表示します。"
       : "製品の検索結果とおすすめ候補に適用します。価格がわからない製品は除きます。";
 
-    const quick = $("quickChips"); quick.innerHTML = "";
-    PRODUCTS.filter(function (p) { return p.quick; }).forEach(function (p) {
-      quick.appendChild(chip(p.name, !!state.products[p._id], function () { toggleProduct(p._id); }));
-    });
-
     buildProductList();
 
     const sel = $("selectedChips"); sel.innerHTML = "";
@@ -633,10 +656,6 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
 
   // 「合わなかった製品」の入力（成分登録済みの製品だけ）
   function buildBadInputs() {
-    const quick = $("badQuickChips"); quick.innerHTML = "";
-    PRODUCTS.filter(function (p) { return p.quick && p._hasIng; }).forEach(function (p) {
-      quick.appendChild(chip(p.name, !!state.bad[p._id], function () { toggleBad(p._id); }));
-    });
     buildBadList();
     const sel = $("badSelectedChips"); sel.innerHTML = "";
     const chosen = badProducts();
@@ -767,6 +786,7 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
 
   function toggleProduct(id) {
     if (state.products[id]) delete state.products[id]; else { state.products[id] = true; delete state.bad[id]; }
+    state.bandTarget = null;   // 使っている製品が変わったら、狙い価格は初期値（その製品の代表価格）から
     render();
   }
 
@@ -810,6 +830,66 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
     b.addEventListener("click", function () { openSheet(p); });
     return b;
   }
+
+  // ---------- 価格帯の3つのおすすめ ----------
+  let bandPool = null, bandMsg = "";
+  const yen = function (n) { return n.toLocaleString() + "円"; };
+  // 狙い価格の初期値：今使っている製品の代表価格（探している種類と同じ製品を優先、なければ選んだ順で最初の、価格がわかる製品）
+  function bandAuto() {
+    const chosen = selectedProducts().filter(function (p) { return repPrice(p) != null; });
+    const same = chosen.filter(function (p) { return p.type === state.target; });
+    const p = (same.length ? same : chosen)[0];
+    if (!p) return { value: BAND_DEFAULT, from: "使っている製品（価格がわかるもの）が選ばれていないため、" + BAND_DEFAULT.toLocaleString() + "円" };
+    const v = repPrice(p), c = Math.min(BAND_MAX, Math.max(BAND_MIN, v));
+    return { value: c, from: "今使っている製品「" + p.name + "」の代表価格（" + yen(v) + "）" + (c !== v ? "を、選べる範囲に合わせて" + yen(c) + "に" : "") + "から" };
+  }
+  function bandCard(r) {
+    const groupsTxt = r.covered.map(function (d) { return ING_GROUPS[d.gid].label; }).join("・");
+    return card(r.p, "",
+      '<p class="reason"><b>' + esc(r.ings.join("・")) + "</b> が入っています。</p>" +
+      '<p class="reason" style="font-size:12px;color:var(--muted);margin-top:0">該当グループ：' + esc(groupsTxt) + "</p>");
+  }
+  function renderBand() {
+    const auto = bandAuto();
+    const target = state.bandTarget == null ? auto.value : state.bandTarget;
+    const w = state.bandWidth;
+    const lo = Math.max(BAND_STEP, target - w), hi = target + w;   // 下限は500円より下げない
+    $("bandTitle").textContent = "価格帯の3つのおすすめ（" + targetById(state.target).label + "）";
+    $("bandTargetText").textContent = yen(target);
+    $("bandFrom").textContent = state.bandTarget == null ? "初期値：" + auto.from : "スライダーで調整中";
+    const rg = $("bandRange");
+    if (document.activeElement !== rg) rg.value = String(target);
+    const wc = $("bandWidthChips"); wc.innerHTML = "";
+    BAND_WIDTHS.forEach(function (x) {
+      wc.appendChild(chip("±" + yen(x), w === x, function () { state.bandWidth = x; renderBand(); }));
+    });
+    $("bandNow").textContent = "いまの帯：" + yen(lo) + "〜" + yen(hi);
+    const area = $("bandArea"); area.innerHTML = "";
+    if (!bandPool) { area.innerHTML = '<div class="empty-note">' + esc(bandMsg) + "</div>"; return; }
+    const inBand = bandPool.filter(function (r) { const n = repPrice(r.p); return n != null && n >= lo && n <= hi; });
+    // 枠ごとに基準価格に最も近い製品を選ぶ（同じ距離なら、補える成分グループが多い順＝下の候補リストと同じ順）。ほかの枠と重なったら次に近いもの
+    const used = {};
+    const slots = [{ base: lo }, { base: target }, { base: hi }].map(function (sl) {
+      const pick = inBand
+        .map(function (r, i) { return { r: r, i: i, d: Math.abs(repPrice(r.p) - sl.base) }; })
+        .filter(function (x) { return !used[x.r.p._id]; })
+        .sort(function (a, b) { return (a.d - b.d) || (a.i - b.i); })[0];
+      if (pick) used[pick.r.p._id] = true;
+      sl.r = pick ? pick.r : null;
+      return sl;
+    });
+    // 見出し：「○○円帯のおすすめ」。基準価格の表記が重なるときは、基準価格をそのまま書く
+    const labels = slots.map(function (sl) { return yen(sl.base) + "帯"; });
+    slots.forEach(function (sl, i) {
+      const dup = labels.filter(function (l) { return l === labels[i]; }).length > 1;
+      const box = document.createElement("div"); box.className = "band-slot";
+      box.innerHTML = "<h4>" + esc(dup ? yen(sl.base) : labels[i]) + "のおすすめ</h4>";
+      if (sl.r) box.appendChild(bandCard(sl.r));
+      else box.insertAdjacentHTML("beforeend", '<div class="empty-note">この価格帯には候補がありません。</div>');
+      area.appendChild(box);
+    });
+  }
+  $("bandRange").addEventListener("input", function (e) { state.bandTarget = parseInt(e.target.value, 10); renderBand(); });
 
   function renderResults() {
     const chosen = selectedProducts();
@@ -912,13 +992,16 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
     const rArea = $("recArea"); rArea.innerHTML = "";
     // 製品未選択のときは、見たいグループ全体を対象にする
     const lookFor = analyzable.length === 0 ? desired : missing;
+    bandPool = null;
     if (desired.length === 0) {
       rArea.innerHTML = '<div class="empty-note">「気になること」か「肌質」を選ぶと、候補がここに出ます。</div>';
+      bandMsg = "「気になること」か「肌質」を選ぶと、ここに価格帯ごとのおすすめが出ます。";
     } else if (lookFor.length === 0) {
       rArea.innerHTML = '<div class="ok-note">足りていない成分グループがないため、候補はありません。</div>';
+      bandMsg = "足りていない成分グループがないため、候補はありません。";
     } else {
       let excludedN = 0;
-      const scored = PRODUCTS
+      const scoredAll = PRODUCTS
         .filter(function (p) { return !state.products[p._id] && !state.bad[p._id]; })
         .filter(function (p) { return p._hasIng && REC_TYPES.indexOf(p.type) !== -1; })
         .filter(withinCap)
@@ -940,8 +1023,9 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
           if (excluding && hasSuspect(r.p)) { excludedN++; return false; }
           return true;
         })
-        .sort(function (a, b) { return (b.covered.length - a.covered.length) || (b.ings.length - a.ings.length); })
-        .slice(0, 3);
+        .sort(function (a, b) { return (b.covered.length - a.covered.length) || (b.ings.length - a.ings.length); });
+      bandPool = scoredAll; bandMsg = "";
+      const scored = scoredAll.slice(0, 3);
 
       const exclNote = excludedN
         ? '<p class="excl-note">合わない可能性のある成分を含む ' + excludedN + '件の製品を候補から外しました。</p>' : "";
@@ -960,6 +1044,8 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
         });
       }
     }
+
+    renderBand();
 
     // 今の製品
     const cArea = $("currentArea"); cArea.innerHTML = "";

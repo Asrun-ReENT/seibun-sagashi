@@ -256,9 +256,7 @@
 
     <fieldset>
       <legend>今使っている日焼け止め<span class="opt">任意・1つ</span></legend>
-      <span class="sub-label">よく使われる候補</span>
-      <div class="chips" id="quickChips"></div>
-      <label class="sub-label" for="productSearch">製品名・メーカーで検索</label>
+      <label class="sub-label" for="productSearch" style="margin-top:0">製品名・メーカーで検索</label>
       <div class="search-box">
         <input type="search" id="productSearch" placeholder="製品名・メーカー（例：アネッサ）" autocomplete="off" enterkeyhint="search" />
       </div>
@@ -346,16 +344,6 @@
      日焼け止めページの設定（ここは後から調整可）
      ===================================================================== -->
 <script>
-// 「よく使われる候補」チップ（製品名と、メーカー欄に含まれる語で指定）
-const SUN_QUICK = [
-  { label: "アネッサ スキンケアミルク", name: "パーフェクトＵＶ スキンケアミルク ＮＡ", maker: "アネッサ" },
-  { label: "ビオレUV アクアリッチ", name: "ＵＶ アクアリッチ ウォータリージェル", maker: "ビオレ" },
-  { label: "スキンアクア スーパーモイスチャージェル", name: "スーパーモイスチャージェル", maker: "スキンアクア" },
-  { label: "ニベアUV ウォータージェルEX", name: "ニベアＵＶ ウォータージェルＥＸ", maker: "ニベア" },
-  { label: "ラ ロッシュ ポゼ UVイデア XL", name: "UVイデア XL", maker: "ラ ロッシュ ポゼ" },
-  { label: "キュレル UVエッセンス", name: "潤浸保湿 ＵＶエッセンス ５０ｇ", maker: "キュレル" },
-  { label: "アリィー ジェルUV EX", name: "アリィー クロノビューティ ジェルUV EX", maker: "アリィー" }
-];
 // 形状の選択肢。データの形状（form）が「チューブ・ポンプ」のように2つ書かれている製品は、どちらを選んでも含める
 const SUN_FORMS = ["チューブ", "ボトル", "ポンプ", "スティック", "スプレー・ミスト", "ジャー", "その他"];
 const SUN_AREAS = ["顔用", "体用", "顔・体両用"];
@@ -541,17 +529,9 @@ const SOAP_NOTE = "製品データに「石けんで落とせる」「洗顔料�
       box.appendChild(chip(it.label, cur === it.value, function () { set(it.value); state.limit = PAGE; render(); }));
     });
   }
-  const findQuick = function (q) {
-    return SUN.find(function (p) { return p.name === q.name && String(p.maker).indexOf(q.maker) !== -1; });
-  };
   function setCurrent(id) { state.current = state.current === id ? null : id; state.limit = PAGE; render(); }
 
   function buildInputs() {
-    const quick = $("quickChips"); quick.innerHTML = "";
-    SUN_QUICK.forEach(function (q) {
-      const p = findQuick(q);
-      if (p) quick.appendChild(chip(q.label, state.current === p._id, function () { setCurrent(p._id); }));
-    });
     buildProductList();
     const fc = $("formChips"); fc.innerHTML = "";
     SUN_FORMS.forEach(function (f) {
