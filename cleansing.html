@@ -220,6 +220,11 @@
   .target-guide div + div { margin-top: 6px; }
   .warn { color: var(--amber); font-weight: 700; }
   .stage { font-weight: 700; }
+  /* 種類の切り替え（クレンジング・洗顔／ボディソープ）。本体ページの価格の切り替えと同じ見た目 */
+  .mode-seg { display: flex; gap: 0; margin: 10px 0 2px; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface-2); }
+  .mode-seg button { flex: 1; border: 0; background: transparent; border-radius: 999px; padding: 9px 6px; font: inherit; font-size: 13.5px; font-weight: 700; color: var(--muted); cursor: pointer; }
+  .mode-seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .mode-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .stage.s3 { background: var(--accent); color: var(--accent-ink); }
   .stage.s2 { background: var(--accent-soft); color: var(--accent); }
   .stage.s1 { background: var(--surface-2); color: var(--ink); }
@@ -232,13 +237,17 @@
 <div class="wrap">
   <header class="top top-title">
     <p class="app-name">成分さがし ／ クレンジング・洗顔</p>
-    <h1>クレンジング・洗顔を、剤型と成分から見る</h1>
+    <h1 id="pageH1">クレンジング・洗顔を、剤型と成分から見る</h1>
+    <div class="mode-seg" id="modeSeg" role="group" aria-label="探す種類">
+      <button type="button" data-mode="cl" aria-pressed="true">クレンジング・洗顔</button>
+      <button type="button" data-mode="bs" aria-pressed="false">ボディソープ</button>
+    </div>
   </header>
   <nav id="pageTabs" data-current="cleansing" aria-label="ページ切り替え"></nav>
   <script src="tabs.js"></script>
   <header class="top top-rest">
     <p>今の製品の不満点を選ぶと、剤型と成分からの目安で候補を並べます。入力した内容はこの端末の中だけで処理し、外部には送信しません。</p>
-    <div class="sample-banner">実在製品のデータ（2026-11-18〜24確認。リニューアルで変わることがあります）。洗浄力の段階は、剤型と成分からの目安です。実際の使用感は配合量や使い方で変わります。</div>
+    <div class="sample-banner">実在製品のデータ（2026-11-18〜24確認。リニューアルで変わることがあります）。<span id="bannerStage">洗浄力の段階は、剤型と成分からの目安です。実際の使用感は配合量や使い方で変わります。</span></div>
     <p class="count-line" id="countLine"></p>
   </header>
 
@@ -247,7 +256,7 @@
     <p class="lead">タップで選びます。文字入力は製品の検索だけです。</p>
 
     <fieldset>
-      <legend>今使っているクレンジング／洗顔<span class="opt">任意・1つ</span></legend>
+      <legend><span id="curLegend">今使っているクレンジング／洗顔</span><span class="opt">任意・1つ</span></legend>
       <label class="sub-label" for="productSearch" style="margin-top:0">製品名・メーカーで検索</label>
       <div class="search-box">
         <input type="search" id="productSearch" placeholder="製品名・メーカー（例：ファンケル）" autocomplete="off" enterkeyhint="search" />
@@ -290,9 +299,11 @@
 
   <footer class="note">
     <strong>※ 実在製品のデータ（2026-11-18〜24確認。リニューアルで変わることがあります）。</strong>成分名は化粧品の一般的な表示名にそろえています。最新の内容は製品パッケージでご確認ください。<br />
-    ※ 洗浄力の段階は、剤型と成分からの目安です。成分の配合量までは分からないため、実際の使用感は配合量や使い方で変わります。<br />
+    <span id="noteCL">※ 洗浄力の段階は、剤型と成分からの目安です。成分の配合量までは分からないため、実際の使用感は配合量や使い方で変わります。<br />
     ※ 洗浄力の目安：<b>強め</b>＝オイル・バーム／<b>中くらい</b>＝ジェル・クリーム・泡・パウダー／<b>マイルド寄り</b>＝ミルク・リキッド・シート。そのほかの剤型（洗顔フォーム・固形石けん・その他など）は目安なしです。<br />
-    ※ 洗浄成分の系統（洗顔のみ）：<b>アミノ酸系</b>＝グルタミン酸系・アラニン系・グリシン系の洗浄成分が成分リストの先頭から10番目以内にあるもの／<b>石けん系</b>＝石ケン素地を含むもの、または脂肪酸（ラウリン酸・ミリスチン酸・パルミチン酸・ステアリン酸）と水酸化Kの両方を含むもの。<br />
+    ※ 洗浄成分の系統（洗顔のみ）：<b>アミノ酸系</b>＝グルタミン酸系・アラニン系・グリシン系の洗浄成分が成分リストの先頭から10番目以内にあるもの／<b>石けん系</b>＝石ケン素地を含むもの、または脂肪酸（ラウリン酸・ミリスチン酸・パルミチン酸・ステアリン酸）と水酸化Kの両方を含むもの。<br /></span>
+    <span id="noteBS" hidden>※ 洗浄力の段階は、洗浄成分の系統からの目安です。成分の配合量までは分からないため、実際の使用感は配合量や使い方で変わります。<br />
+    ※ 洗浄成分の系統（ボディソープ）：成分リストの先頭から10番目以内で判定します。<b>石けん系</b>（強め）＝カリ石ケン素地・石ケン素地を含むもの、または脂肪酸（ラウリン酸・ミリスチン酸・パルミチン酸・ステアリン酸・オレイン酸）と水酸化Kの両方を含むもの／<b>アミノ酸系</b>（マイルド寄り）＝ココイルグルタミン酸・ココイルアラニン・ココイルグリシン・ココイルサルコシン・ココイルメチルタウリン・ラウロイルグルタミン酸・ラウロイルアスパラギン酸・ラウロイルサルコシン・ラウロイルメチルアラニンの塩を含むもの／<b>硫酸系</b>（中くらい）＝ラウレス硫酸・ラウリル硫酸の塩を含むもの。複数に当たるときは石けん系→アミノ酸系→硫酸系の順で1つに決め、どれにも当たらないものは「その他」（目安なし）です。<br /></span>
     ※ 価格は税込の目安です（掲載時点のもの）。表示と成分の事実を並べたもので、製品の効果・効能を示すものではありません。肌に合うかどうかは個人差があります。
   </footer>
 </div>
@@ -347,6 +358,19 @@ const KOH = ["水酸化K", "水酸化カリウム"];
 const ORIGIN_OPTS = [
   { label: "気にしない", value: null }, { label: "国内", value: "国内" }, { label: "韓国", value: "韓国" }, { label: "海外（韓国以外）", value: "海外" }
 ];
+// ---------- ボディソープ ----------
+// 洗浄成分の系統（成分リストの先頭から BS_WITHIN 番目以内で判定。優先順は 石けん系 → アミノ酸系 → 硫酸系）
+const BS_WITHIN = 10;
+const BS_SOAP_BASE_RX = /石ケン素地|石けん素地|石鹸素地|せっけん素地/;   // カリ石ケン素地も含む
+const BS_FATTY_ACIDS = ["ラウリン酸", "ミリスチン酸", "パルミチン酸", "ステアリン酸", "オレイン酸"];
+const BS_AMINO = ["ココイルグルタミン酸", "ココイルアラニン", "ココイルグリシン", "ココイルサルコシン", "ココイルメチルタウリン",
+  "ラウロイルグルタミン酸", "ラウロイルアスパラギン酸", "ラウロイルサルコシン", "ラウロイルメチルアラニン"];   // 部分一致
+const BS_SULFATE = ["ラウレス硫酸", "ラウリル硫酸"];   // 部分一致
+// 系統 → 洗浄力の目安（STRENGTH_LABEL の段階）。「その他」は目安なし
+const BS_STAGE = { "石けん系": 3, "硫酸系": 2, "アミノ酸系": 1 };
+// 剤型チップ（「固形」は 固形(石鹸) などの「固形」で始まる剤型、「その他」は上のどれにも当たらない剤型）
+const BS_TEXTURES = ["リキッド", "泡", "ジェル", "クリーム", "固形", "パウダー", "その他"];
+const BS_HEAVY = ["クリーム"];
 const PRICE_CAPS = [
   { label: "上限なし", value: null }, { label: "〜1,000円", value: 1000 }, { label: "〜3,000円", value: 3000 },
   { label: "〜5,000円", value: 5000 }, { label: "〜10,000円", value: 10000 }
@@ -390,12 +414,34 @@ const PRICE_CAPS = [
       else if (fa.length && kh.length) { p._sys.push("石けん系"); p._sysIngs = p._sysIngs.concat(fa, kh); }
     }
   });
+  // ボディソープ（成分登録済みのみ）
+  const BS = ALL.filter(function (p) { return p.type === "ボディソープ" && p._hasIng; });
+  BS.forEach(function (p) {
+    BY_ID[p._id] = p;
+    const top = p.ingredients.slice(0, BS_WITHIN).map(nfkc);
+    const pick = function (f) { return top.filter(f); };
+    let sys = "その他", used = [];
+    const sb = pick(function (n) { return BS_SOAP_BASE_RX.test(n); });
+    const fa = pick(function (n) { return BS_FATTY_ACIDS.indexOf(n) !== -1; });
+    const kh = pick(function (n) { return KOH.indexOf(n) !== -1; });
+    const am = pick(function (n) { return BS_AMINO.some(function (k) { return n.indexOf(k) !== -1; }); });
+    const su = pick(function (n) { return BS_SULFATE.some(function (k) { return n.indexOf(k) !== -1; }); });
+    if (sb.length || (fa.length && kh.length)) { sys = "石けん系"; used = sb.length ? sb : fa.concat(kh); }
+    else if (am.length) { sys = "アミノ酸系"; used = am; }
+    else if (su.length) { sys = "硫酸系"; used = su; }
+    p._bsSys = sys; p._stage = BS_STAGE[sys] || null; p._sys = []; p._sysIngs = used;
+  });
+  const bsTex = function (p) {
+    const t = p.texture || "";
+    if (t.indexOf("固形") === 0) return "固形";
+    return BS_TEXTURES.indexOf(t) !== -1 ? t : "その他";
+  };
   CL.sort(function (a, b) {
     return (a.type === b.type ? 0 : a.type === "クレンジング" ? -1 : 1) || (parseInt(a._id.slice(1), 10) - parseInt(b._id.slice(1), 10));
   });
 
   const PAGE = 30;
-  const state = { current: null, issues: {}, tex: {}, cap: null, origin: null, query: "", limit: PAGE, plimit: PAGE };
+  const state = { mode: "cl", current: null, issues: {}, tex: {}, cap: null, origin: null, query: "", limit: PAGE, plimit: PAGE };
 
   const brandOf = function (p) { return [p.maker, p.series].filter(function (v) { return v; }).join(" ／ "); };
   const priceText = function (p) { const v = p.prices[0]; if (!v) return ""; return [v.price, v.volume].filter(function (x) { return x; }).join(" ／ "); };
@@ -431,6 +477,10 @@ const PRICE_CAPS = [
       : '<span class="attr attr-sub">洗浄力の目安なし</span>';
   };
   const attrTags = function (p) {
+    if (p.type === "ボディソープ") {
+      return ['<span class="attr attr-sub">剤型：' + esc(p.texture || "記録なし") + "</span>", stageTag(p),
+        '<span class="attr">洗浄成分：' + esc(p._bsSys) + "</span>"].join("");
+    }
     const a = ['<span class="attr attr-sub">剤型：' + esc(p.texture || "記録なし") + "</span>", stageTag(p)];
     p._sys.forEach(function (s) { a.push('<span class="attr">' + esc(s) + "</span>"); });
     if (p.waterproof) a.push('<span class="attr attr-sub">' + esc(p.waterproof === true ? "ウォータープルーフ" : p.waterproof) + "</span>");
@@ -456,13 +506,44 @@ const PRICE_CAPS = [
       why: function (p) { return "洗浄力が" + STRENGTH_LABEL[p._stage] + "の目安です"; },
       sort: function (p) { return HEAVY.indexOf(p.texture) !== -1 ? 1 : 0; } }
   ];
+  // ボディソープの不満点（考え方は ISSUES と同じ。段階は洗浄成分の系統からの目安）
+  const L = STRENGTH_LABEL;
+  const BS_ISSUES = [
+    { id: "bdry", label: "つっぱる・乾燥する",
+      guide: "洗浄力の目安が今の製品より穏やかな製品を、マイルド寄り（アミノ酸系）を先にして前に出します（今の製品を選んでいないときや、今の製品に目安がないときは「マイルド寄り」）。「強め」（石けん系）は出しません。",
+      ok: function (p, cur) { return p._stage != null && (cur && cur._stage ? p._stage < cur._stage : p._stage === 1); },
+      why: function (p, cur) {
+        return cur && cur._stage ? "今の製品（" + L[cur._stage] + "）より洗浄力が穏やかな目安です（" + p._bsSys + "・" + L[p._stage] + "）"
+          : "洗浄成分が" + p._bsSys + "で、洗浄力は" + L[p._stage] + "の目安です";
+      },
+      sort: function (p) { return p._stage || 9; } },
+    { id: "bslimy", label: "ぬるつきが残る",
+      guide: "洗浄力の目安が「中くらい」以上（石けん系・硫酸系）の製品を前に出し、クリームなど重めの剤型は後ろに回します。",
+      ok: function (p) { return p._stage != null && p._stage >= 2; },
+      why: function (p) { return "洗浄成分が" + p._bsSys + "で、洗浄力は" + L[p._stage] + "の目安です"; },
+      sort: function (p) { return BS_HEAVY.indexOf(p.texture) !== -1 ? 1 : 0; } },
+    { id: "brefresh", label: "さっぱり洗いたい",
+      guide: "洗浄力の目安が今の製品より上の製品を、強め（石けん系）→中くらい（硫酸系）の順に前に出します（今の製品を選んでいないときや、今の製品に目安がないときは「中くらい」以上）。",
+      ok: function (p, cur) { return p._stage != null && (cur && cur._stage ? p._stage > cur._stage : p._stage >= 2); },
+      why: function (p, cur) {
+        return cur && cur._stage ? "今の製品（" + L[cur._stage] + "）より洗浄力が強めの目安です（" + p._bsSys + "・" + L[p._stage] + "）"
+          : "洗浄成分が" + p._bsSys + "で、洗浄力は" + L[p._stage] + "の目安です";
+      },
+      sort: function (p) { return -(p._stage || 0); } }
+  ];
+  // 今のモードの対象・不満点・剤型
+  const isBS = function () { return state.mode === "bs"; };
+  const POOL = function () { return isBS() ? BS : CL; };
+  const ISS = function () { return isBS() ? BS_ISSUES : ISSUES; };
+  const TEXS = function () { return isBS() ? BS_TEXTURES : TEXTURES; };
+  const texKey = function (p) { return isBS() ? bsTex(p) : p.texture; };
 
   // 選んだ剤型（何も選ばなければ絞り込みなし。選んだもののどれかに合えば残す）
-  const texSel = function () { return TEXTURES.filter(function (t) { return state.tex[t]; }); };
+  const texSel = function () { return TEXS().filter(function (t) { return state.tex[t]; }); };
   function baseList() {
-    return CL.filter(function (p) {
+    return POOL().filter(function (p) {
       if (state.current === p._id) return false;
-      if (texSel().length && !state.tex[p.texture]) return false;
+      if (texSel().length && !state.tex[texKey(p)]) return false;
       if (state.origin && p._origin !== state.origin) return false;
       return withinCap(p);
     });
@@ -473,7 +554,7 @@ const PRICE_CAPS = [
     const base = baseList();
     const pending = base.filter(function (p) { return !p._hasIng; });
     const pool = base.filter(function (p) { return p._hasIng; });
-    const on = ISSUES.filter(function (i) { return state.issues[i.id]; });
+    const on = ISS().filter(function (i) { return state.issues[i.id]; });
     if (!on.length) return { list: pool.map(function (p) { return { p: p, hit: [] }; }), relaxed: false, pending: pending, on: on };
     const scored = pool.map(function (p) { return { p: p, hit: on.filter(function (i) { return i.ok(p, cur); }) }; });
     let list = scored.filter(function (r) { return r.hit.length === on.length; });
@@ -502,25 +583,25 @@ const PRICE_CAPS = [
     return b;
   }
   function setCurrent(id) { state.current = state.current === id ? null : id; state.limit = PAGE; render(); }
-  const texCount = function (t) { return CL.filter(function (p) { return p.texture === t; }).length; };
+  const texCount = function (t) { return POOL().filter(function (p) { return texKey(p) === t; }).length; };
 
   function buildInputs() {
     buildProductList();
     const ib = $("issueChips"); ib.innerHTML = "";
-    ISSUES.forEach(function (i) {
+    ISS().forEach(function (i) {
       ib.appendChild(chip(i.label, !!state.issues[i.id], function () {
         if (state.issues[i.id]) delete state.issues[i.id]; else state.issues[i.id] = true;
         state.limit = PAGE; render();
       }));
     });
-    const on = ISSUES.filter(function (i) { return state.issues[i.id]; });
-    $("issueGuide").innerHTML = (on.length ? on : ISSUES).map(function (i) { return "<div><b>" + esc(i.label) + "</b>：" + esc(i.guide) + "</div>"; }).join("");
+    const on = ISS().filter(function (i) { return state.issues[i.id]; });
+    $("issueGuide").innerHTML = (on.length ? on : ISS()).map(function (i) { return "<div><b>" + esc(i.label) + "</b>：" + esc(i.guide) + "</div>"; }).join("");
     const tb = $("texChips"); tb.innerHTML = "";
-    TEXTURES.forEach(function (t) {
+    TEXS().forEach(function (t) {
       const n = texCount(t);
       tb.appendChild(chip(t + (n ? "" : "（該当なし）"), !!state.tex[t], function () { if (state.tex[t]) delete state.tex[t]; else state.tex[t] = true; state.limit = PAGE; render(); }, n ? "" : "chip-empty"));
     });
-    $("texNote").textContent = texSel().length ? "剤型が「" + texSel().join("」「") + "」のどれかに当たる製品を出します。" : "何も選ばなければ剤型では絞り込みません。洗顔フォーム・固形石けんなど、上にない剤型の製品は、剤型を選んでいないときだけ出ます。";
+    $("texNote").textContent = texSel().length ? "剤型が「" + texSel().join("」「") + "」のどれかに当たる製品を出します。" : isBS() ? "何も選ばなければ剤型では絞り込みません。「固形」は固形石けんの製品です。" : "何も選ばなければ剤型では絞り込みません。洗顔フォーム・固形石けんなど、上にない剤型の製品は、剤型を選んでいないときだけ出ます。";
     // ブランドの出身（単一選択）
     const oc = $("originChips"); oc.innerHTML = "";
     ORIGIN_OPTS.forEach(function (o) { oc.appendChild(chip(o.label, state.origin === o.value, function () { state.origin = o.value; state.limit = PAGE; render(); })); });
@@ -532,8 +613,8 @@ const PRICE_CAPS = [
   function buildProductList() {
     const box = $("productList"); box.innerHTML = "";
     const q = normQ(state.query);
-    if (!q) { box.innerHTML = '<p class="no-hit">製品名を入力すると、ここに候補が出ます（クレンジング・洗顔の製品から探します）。</p>'; return; }
-    const hits = CL.filter(function (p) { return [p.name, p.type, p.maker, p.series].some(function (v) { return v && normQ(v).indexOf(q) !== -1; }); });
+    if (!q) { box.innerHTML = '<p class="no-hit">製品名を入力すると、ここに候補が出ます（' + (isBS() ? "ボディソープ" : "クレンジング・洗顔") + 'の製品から探します）。</p>'; return; }
+    const hits = POOL().filter(function (p) { return [p.name, p.type, p.maker, p.series].some(function (v) { return v && normQ(v).indexOf(q) !== -1; }); });
     if (!hits.length) { box.innerHTML = '<p class="no-hit">「' + esc(state.query.trim()) + '」に合う製品は見つかりませんでした。</p>'; return; }
     const shown = hits.slice(0, state.plimit);
     const cnt = document.createElement("p"); cnt.className = "hit-count";
@@ -569,7 +650,7 @@ const PRICE_CAPS = [
   function card(p, reasons) {
     const b = document.createElement("button");
     b.type = "button"; b.className = "card";
-    const sysWhy = p._sys.length ? '<p class="reason sub-reason">系統の判定に使った成分：' + esc(p._sysIngs.join("・")) + "</p>" : "";
+    const sysWhy = p._sysIngs.length ? '<p class="reason sub-reason">系統の判定に使った成分：' + esc(p._sysIngs.join("・")) + "</p>" : "";
     b.innerHTML =
       '<div class="card-head"><span class="cname">' + esc(p.name) + pendingBadge(p) + '</span><span class="ptype">' + esc(p.type) + '</span></div>' +
       (brandOf(p) ? '<div class="pbrand">' + esc(brandOf(p)) + '</div>' : '') +
@@ -590,7 +671,7 @@ const PRICE_CAPS = [
       d.innerHTML = '<div class="current-label">今の製品の目安<button type="button" class="clear-btn" aria-label="今の製品を外す">外す</button></div>' +
         '<div class="cname">' + esc(cur.name) + '</div>' + (brandOf(cur) ? '<div class="pbrand">' + esc(brandOf(cur)) + '</div>' : '') +
         '<div class="card-attrs">' + attrTags(cur) + '</div>' +
-        (cur._sys.length ? '<div class="muted-note" style="font-size:12px">系統の判定に使った成分：' + esc(cur._sysIngs.join("・")) + "</div>" : "") +
+        (cur._sysIngs.length ? '<div class="muted-note" style="font-size:12px">系統の判定に使った成分：' + esc(cur._sysIngs.join("・")) + "</div>" : "") +
         (!cur._hasIng ? '<div class="muted-note" style="font-size:12px">成分調査中のため、洗浄力の目安・系統は判定していません。</div>' : "") +
         '<div class="muted-note" style="font-size:12px;margin-top:4px">この製品は候補から除いています。<a href="#" class="see-ing">全成分を見る</a></div>';
       d.querySelector(".clear-btn").addEventListener("click", function () { setCurrent(cur._id); });
@@ -598,7 +679,7 @@ const PRICE_CAPS = [
       cb.appendChild(d);
     }
     const tags = [];
-    ISSUES.forEach(function (i) { if (state.issues[i.id]) tags.push(i.label); });
+    ISS().forEach(function (i) { if (state.issues[i.id]) tags.push(i.label); });
     tags.push("剤型：" + (texSel().length ? texSel().join("／") : "指定なし"));
     if (state.origin) tags.push("出身：" + (state.origin === "海外" ? "海外（韓国以外）" : state.origin));
     if (state.cap != null) tags.push("上限価格：〜" + state.cap.toLocaleString() + "円");
@@ -678,11 +759,39 @@ const PRICE_CAPS = [
   $("sheetClose").addEventListener("click", closeSheet);
   sheet.addEventListener("click", function (e) { if (e.target === sheet) closeSheet(); });
 
-  (function () {
+  const COUNT_CL = (function () {
     const nC = CL.filter(function (p) { return p.type === "クレンジング"; }).length, nW = CL.length - nC;
     const withIng = CL.filter(function (p) { return p._hasIng; }).length;
-    $("countLine").innerHTML = "対象製品 <b>" + CL.length.toLocaleString() + "件</b>（クレンジング " + nC + "件・洗顔 " + nW + "件。うち成分登録済み <b>" + withIng.toLocaleString() + "件</b>）";
+    return "対象製品 <b>" + CL.length.toLocaleString() + "件</b>（クレンジング " + nC + "件・洗顔 " + nW + "件。うち成分登録済み <b>" + withIng.toLocaleString() + "件</b>）";
   })();
+  const COUNT_BS = (function () {
+    const n = function (s) { return BS.filter(function (p) { return p._bsSys === s; }).length; };
+    return "対象製品 <b>" + BS.length.toLocaleString() + "件</b>（ボディソープ・成分登録済み。石けん系 " + n("石けん系") + "件・アミノ酸系 " + n("アミノ酸系") + "件・硫酸系 " + n("硫酸系") + "件・その他 " + n("その他") + "件）";
+  })();
+  const TEXT = {
+    cl: { h1: "クレンジング・洗顔を、剤型と成分から見る", legend: "今使っているクレンジング／洗顔", ph: "製品名・メーカー（例：ファンケル）",
+      banner: "洗浄力の段階は、剤型と成分からの目安です。実際の使用感は配合量や使い方で変わります。" },
+    bs: { h1: "ボディソープを、洗浄成分から見る", legend: "今使っているボディソープ", ph: "製品名・メーカー（例：ダヴ）",
+      banner: "洗浄力の段階は、洗浄成分の系統からの目安です。実際の使用感は配合量や使い方で変わります。" }
+  };
+  function applyMode() {
+    const t = TEXT[state.mode];
+    $("pageH1").textContent = t.h1; $("curLegend").textContent = t.legend; $("productSearch").placeholder = t.ph;
+    $("bannerStage").textContent = t.banner;
+    $("countLine").innerHTML = isBS() ? COUNT_BS : COUNT_CL;
+    $("noteCL").hidden = isBS(); $("noteBS").hidden = !isBS();
+    Array.prototype.forEach.call($("modeSeg").querySelectorAll("button"), function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-mode") === state.mode ? "true" : "false"); });
+  }
+  Array.prototype.forEach.call($("modeSeg").querySelectorAll("button"), function (b) {
+    b.addEventListener("click", function () {
+      const m = b.getAttribute("data-mode");
+      if (m === state.mode) return;
+      // 種類を切り替えたら、今の製品・不満点・剤型は外す（上限価格・出身・検索の文字はそのまま）
+      state.mode = m; state.current = null; state.issues = {}; state.tex = {}; state.limit = PAGE; state.plimit = PAGE;
+      applyMode(); render();
+    });
+  });
+  applyMode();
 
   function render() { buildInputs(); renderResults(); }
   $("productSearch").addEventListener("input", function (e) { state.query = e.target.value; state.plimit = PAGE; buildProductList(); });

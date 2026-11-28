@@ -243,6 +243,8 @@
   .sheet-attrs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
   .sheet-attrs:empty { display: none; }
   .attr { font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 1px 8px; }
+  .reason.caution { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .care-note { margin: 0 0 12px; padding: 8px 10px; border-radius: 8px; background: var(--accent-soft); font-size: 12.5px; line-height: 1.6; }
   .sheet-note { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
   .sheet-origin:empty { display: none; }
 </style>
@@ -266,17 +268,18 @@
     <h2>あなたの条件</h2>
     <p class="lead">タップで選びます。文字入力は製品の検索だけです。</p>
 
-    <fieldset>
+    <p class="care-note" id="careNote" hidden>この種類は、顔用の肌質・悩みではなく、保湿・保護成分のグループで見ています。</p>
+    <fieldset id="ageFieldset">
       <legend>年代</legend>
       <div class="chips" id="ageChips"></div>
     </fieldset>
 
-    <fieldset>
+    <fieldset id="skinFieldset">
       <legend>肌質<span class="opt">複数選択可</span></legend>
       <div class="chips" id="skinChips"></div>
     </fieldset>
 
-    <fieldset>
+    <fieldset id="concernFieldset">
       <legend>気になること<span class="opt">複数選択可</span></legend>
       <div class="chips" id="concernChips"></div>
     </fieldset>
@@ -310,6 +313,7 @@
         <span class="sub-label">選択中</span>
         <div class="selected-chips" id="selectedChips"></div>
       </div>
+      <p class="muted-note" id="careIgnoreNote" style="margin:6px 0 0;font-size:12px" hidden></p>
     </fieldset>
 
     <fieldset>
@@ -325,6 +329,7 @@
         <span class="sub-label">選択中</span>
         <div class="selected-chips" id="badSelectedChips"></div>
       </div>
+      <p class="muted-note" id="careBadIgnoreNote" style="margin:6px 0 0;font-size:12px" hidden></p>
     </fieldset>
   </section>
 
@@ -362,7 +367,7 @@
 
     <div class="result-block">
       <h3><span class="dot dot-missing"></span>足りていない成分</h3>
-      <p class="sub">気になること・肌質に対応する成分グループのうち、今の製品にどれも入っていないもの。</p>
+      <p class="sub" id="missingSub">気になること・肌質に対応する成分グループのうち、今の製品にどれも入っていないもの。</p>
       <div id="missingArea"></div>
     </div>
 
@@ -374,7 +379,7 @@
 
     <div class="result-block" id="recBlock">
       <h3><span class="dot dot-rec"></span><span id="recTitle">おすすめ候補</span></h3>
-      <p class="sub">足りていない成分グループを多く含む順に最大3件（成分登録済みの化粧水・美容液・乳液・クリームから）。タップすると全成分が見られます。</p>
+      <p class="sub" id="recSub">足りていない成分グループを多く含む順に最大3件（成分登録済みの化粧水・美容液・乳液・クリームから）。タップすると全成分が見られます。</p>
       <div id="recBanner"></div>
       <div id="recArea"></div>
     </div>
@@ -433,6 +438,7 @@
     </div>
     <p class="sheet-attrs" id="sheetAttrs"></p>
     <p class="sheet-origin" id="sheetOrigin" style="margin:4px 0 8px;font-size:12.5px;color:var(--muted)"></p>
+    <p class="sheet-caution" id="sheetCaution" style="margin:0 0 8px;font-size:12.5px;color:var(--muted)" hidden></p>
     <div id="sheetPrices"></div>
     <ul class="full-list" id="sheetList"></ul>
     <p class="sheet-memo" id="sheetMemo"></p>
@@ -487,8 +493,39 @@ const TARGETS = [
   { id: "化粧水",  label: "化粧水",   role: "洗顔のあと最初に使うもの。肌に水分を補うステップです。" },
   { id: "美容液",  label: "美容液",   role: "化粧水のあとに使う、目的を絞ったケア。今の手順に成分を足したいとき向けです。" },
   { id: "乳液",    label: "乳液",     role: "化粧水のあとに使い、水分と油分のバランスを整えるもの。" },
-  { id: "クリーム", label: "クリーム", role: "お手入れの最後に使う油分多めのもの。うるおいを閉じ込める役割です。" }
+  { id: "クリーム", label: "クリーム", role: "お手入れの最後に使う油分多めのもの。うるおいを閉じ込める役割です。" },
+  { id: "リップケア", label: "リップケア", role: "唇に使う保湿・保護のケア。顔用の肌質・悩みではなく、保湿・保護成分のグループで候補を見ます。" },
+  { id: "ハンドクリーム", label: "ハンドクリーム", role: "手に使う保湿・保護のケア。顔用の肌質・悩みではなく、保湿・保護成分のグループで候補を見ます。" }
 ];
+// リップケア・ハンドクリームの専用モード：保湿・保護成分のグループ（全成分と有効成分に、keys のどれかを含む成分名があれば当たり＝部分一致）
+const LIP_GROUPS = [
+  { label: "ワセリン", keys: ["ワセリン"] },
+  { label: "バター・油脂", keys: ["シア脂", "シアバター", "ホホバ種子油", "スクワラン", "オリーブ果実油", "ツバキ種子油", "マカデミア種子油"] },
+  { label: "ロウ", keys: ["ミツロウ", "カルナウバロウ", "キャンデリラロウ"] },
+  { label: "セラミド類", keys: ["セラミド"] },
+  { label: "ラノリン類", keys: ["ラノリン"] },
+  { label: "ヒアルロン酸類", keys: ["ヒアルロン酸"] },
+  { label: "パンテノール", keys: ["パンテノール"] },
+  { label: "ビタミンE", keys: ["トコフェロール", "酢酸トコフェロール"] }
+];
+const HAND_GROUPS = [
+  { label: "尿素", keys: ["尿素"] },
+  { label: "ヘパリン類似物質", keys: ["ヘパリン類似物質"] },
+  { label: "セラミド類", keys: ["セラミド"] },
+  { label: "ワセリン", keys: ["ワセリン"] },
+  { label: "バター・油脂", keys: ["シア脂", "シアバター", "スクワラン", "ホホバ種子油"] },
+  { label: "パンテノール", keys: ["パンテノール"] },
+  { label: "アラントイン", keys: ["アラントイン"] },
+  { label: "ビタミンE", keys: ["トコフェロール", "酢酸トコフェロール"] },
+  { label: "グリチルリチン酸類", keys: ["グリチルリチン酸"] }
+];
+// 刺激が気になる方は注意されることが多い成分（表示だけ。候補から除くことはしない）。成分名の完全一致
+const LIP_CAUTION = ["メントール", "l-メントール", "カンフル", "カンフール", "サリチル酸", "香料", "エタノール"];
+const HAND_CAUTION = ["香料", "エタノール", "メントール", "l-メントール"];
+const CARE_MODES = {
+  "リップケア": { groups: LIP_GROUPS, caution: LIP_CAUTION, showSpf: true },
+  "ハンドクリーム": { groups: HAND_GROUPS, caution: HAND_CAUTION, showSpf: false }
+};
 // 価格帯の3つのおすすめ：狙い価格（選んでいる製品がなければこの値）と、幅の選択肢
 const BAND_DEFAULT = 3000;
 const BAND_MIN = 1000, BAND_MAX = 10000, BAND_STEP = 500;
@@ -618,6 +655,32 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
   const pendingBadge = function (p) { return p._hasIng ? "" : '<span class="pending">成分調査中</span>'; };
   const selectedProducts = function () { return Object.keys(state.products).map(byId).filter(Boolean); };
   const badProducts = function () { return Object.keys(state.bad).map(byId).filter(Boolean); };
+  // リップケア・ハンドクリームの専用モード
+  const careMode = function () { return CARE_MODES[state.target] || null; };
+  const nfkc = function (s) { s = String(s || ""); return s.normalize ? s.normalize("NFKC") : s; };
+  // グループに当たる成分名（全成分＋有効成分。部分一致）
+  const careHits = function (p, g) {
+    const out = [];
+    p.ingredients.concat(p.actives || []).forEach(function (n) {
+      const m = nfkc(n);
+      if (out.indexOf(n) === -1 && g.keys.some(function (k) { return m.indexOf(k) !== -1; })) out.push(n);
+    });
+    return out;
+  };
+  const cautionOf = function (p) {
+    const c = CARE_MODES[p.type];
+    if (!c) return [];
+    return Array.from(new Set(p.ingredients.filter(function (n) { return c.caution.indexOf(nfkc(n)) !== -1; })));
+  };
+  const cautionLine = function (p) {
+    const c = cautionOf(p);
+    return c.length ? '<p class="reason caution">刺激が気になる方は注意されることが多い成分：' + esc(c.join("・")) + "</p>" : "";
+  };
+  const spfLine = function (p) {
+    const c = CARE_MODES[p.type];
+    return c && c.showSpf && p.spf ? '<div class="card-attrs"><span class="attr">' + esc(p.spf) + "</span></div>" : "";
+  };
+  const groupLabel = function (d) { return d.label || ING_GROUPS[d.gid].label; };
 
   // 登録済み成分 → 所属グループ名
   const ING_TO_GROUPS = {};
@@ -716,8 +779,10 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
   function buildBadList() {
     const box = $("badList"); box.innerHTML = "";
     const q = normQ(state.badQuery);
-    if (!q) { box.innerHTML = '<p class="no-hit">製品名を入力すると、ここに候補が出ます（成分登録済みの製品だけ）。</p>'; return; }
-    const matched = PRODUCTS.filter(function (p) { return [p.name, p.type, p.maker, p.series].some(function (v) { return v && normQ(v).indexOf(q) !== -1; }); });
+    const cm = careMode();
+    if (!q) { box.innerHTML = '<p class="no-hit">製品名を入力すると、ここに候補が出ます（' + (cm ? esc(state.target) + "の" : "") + '成分登録済みの製品だけ）。</p>'; return; }
+    const matched = PRODUCTS.filter(function (p) { return [p.name, p.type, p.maker, p.series].some(function (v) { return v && normQ(v).indexOf(q) !== -1; }); })
+      .filter(function (p) { return !cm || p.type === state.target; });
     const hits = matched.filter(function (p) { return p._hasIng; })
       .sort(function (a, b) { return TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type); });
     const pending = matched.length - hits.length;
@@ -779,11 +844,13 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
   function buildProductList() {
     const box = $("productList"); box.innerHTML = "";
     const q = normQ(state.query);
+    const cm = careMode();
     if (!q) {
-      box.innerHTML = '<p class="no-hit">製品名を入力すると、ここに候補が出ます。</p>';
+      box.innerHTML = '<p class="no-hit">製品名を入力すると、ここに候補が出ます' + (cm ? "（" + esc(state.target) + "の製品から探します）" : "") + '。</p>';
       return;
     }
-    const matched = PRODUCTS.filter(function (p) { return [p.name, p.type, p.maker, p.series].some(function (v) { return v && normQ(v).indexOf(q) !== -1; }); });
+    const matched = PRODUCTS.filter(function (p) { return [p.name, p.type, p.maker, p.series].some(function (v) { return v && normQ(v).indexOf(q) !== -1; }); })
+      .filter(function (p) { return !cm || p.type === state.target; });
     const hits = matched.filter(withinCap)
       .sort(function (a, b) { return TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type); });
     const capped = matched.length - hits.length;
@@ -876,7 +943,7 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
   const yen = function (n) { return n.toLocaleString() + "円"; };
   // 狙い価格の初期値：今使っている製品の代表価格（探している種類と同じ製品を優先、なければ選んだ順で最初の、価格がわかる製品）
   function bandAuto() {
-    const chosen = selectedProducts().filter(function (p) { return repPrice(p) != null; });
+    const chosen = selectedProducts().filter(function (p) { return repPrice(p) != null && (!careMode() || p.type === state.target); });
     const same = chosen.filter(function (p) { return p.type === state.target; });
     const p = (same.length ? same : chosen)[0];
     if (!p) return { value: BAND_DEFAULT, from: "使っている製品（価格がわかるもの）が選ばれていないため、" + BAND_DEFAULT.toLocaleString() + "円" };
@@ -884,11 +951,12 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
     return { value: c, from: "今使っている製品「" + p.name + "」の代表価格（" + yen(v) + "）" + (c !== v ? "を、選べる範囲に合わせて" + yen(c) + "に" : "") + "から" };
   }
   function bandCard(r) {
-    const groupsTxt = r.covered.map(function (d) { return ING_GROUPS[d.gid].label; }).join("・");
+    const groupsTxt = r.covered.map(groupLabel).join("・");
     // 本命のおすすめ（並び替えの1位）が3つの中にあれば印を付ける
     return card(r.p, r.p._id === honmeiId ? '<span class="honmei-mark">本命のおすすめ</span>' : "",
       '<p class="reason"><b>' + esc(r.ings.join("・")) + "</b> が入っています。</p>" +
-      '<p class="reason" style="font-size:12px;color:var(--muted);margin-top:0">該当グループ：' + esc(groupsTxt) + "</p>");
+      '<p class="reason" style="font-size:12px;color:var(--muted);margin-top:0">該当グループ：' + esc(groupsTxt) + "</p>" +
+      (careMode() ? cautionLine(r.p) + spfLine(r.p) : ""));
   }
   function renderBand() {
     const auto = bandAuto();
@@ -932,7 +1000,125 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
   }
   $("bandRange").addEventListener("input", function (e) { state.bandTarget = parseInt(e.target.value, 10); renderBand(); });
 
+  // ---------- リップケア・ハンドクリームの専用モード ----------
+  // 候補：その種類（成分登録済み）。並び順：①含む保湿・保護グループの数（多い順）②使っている製品との重なり（少ない順）③当たった成分名の数（多い順）
+  function renderCare() {
+    const cm = careMode(), tgt = targetById(state.target), label = tgt.label;
+    const chosen = selectedProducts().filter(function (p) { return p.type === state.target; });
+    const analyzable = chosen.filter(function (p) { return p._hasIng; });
+    const pendingN = chosen.length - analyzable.length;
+    const bad = badProducts().filter(function (p) { return p.type === state.target; });
+
+    const tags = ["使用中 " + chosen.length + "点" + (pendingN ? "（うち成分調査中 " + pendingN + "点）" : "")];
+    if (bad.length) tags.push("合わなかった製品 " + bad.length + "点");
+    tags.push("探しているもの：" + label);
+    if (state.origin) tags.push("出身：" + (state.origin === "海外" ? "海外（韓国以外）" : state.origin));
+    if (capNow() != null) tags.push("上限価格：〜" + state.cap.toLocaleString() + "円");
+    $("condSummary").innerHTML = tags.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("");
+
+    const suspects = renderBadArea(bad, analyzable);
+    const excluding = state.excludeBad && suspects.length > 0;
+    const hasSuspect = function (p) { return suspects.some(function (n) { return p.ingredients.indexOf(n) !== -1; }); };
+    const pendingNote = pendingN
+      ? '<p class="pending-note" style="margin-bottom:8px">成分調査中の製品（' + pendingN + '点）は、成分が未登録のため比べる対象に含めていません。</p>' : "";
+
+    // 保湿・保護のグループ（今の製品に入っているもの／入っていないもの）
+    const mArea = $("missingArea");
+    if (!chosen.length) {
+      mArea.innerHTML = '<div class="empty-note">今使っている' + esc(label) + "を選ぶと、入っていない保湿・保護のグループがここに出ます。</div>";
+    } else if (!analyzable.length) {
+      mArea.innerHTML = '<div class="empty-note">選んだ製品はすべて成分調査中のため、まだ比べられません。</div>';
+    } else {
+      const lacking = cm.groups.filter(function (g) { return !analyzable.some(function (p) { return careHits(p, g).length; }); });
+      const present = cm.groups.filter(function (g) { return lacking.indexOf(g) === -1; });
+      mArea.innerHTML = pendingNote + (present.length ? '<p class="muted-note" style="margin:0 0 8px;font-size:12.5px">今の製品に入っているグループ：' + esc(present.map(function (g) { return g.label; }).join("・")) + "</p>" : "") +
+        (lacking.length ? lacking.map(function (g) {
+          return '<div class="cat-card"><div class="cat-name">' + esc(g.label) + ' <span class="cat-from">／ ' + esc(label) + "の保湿・保護のグループ</span></div>" +
+            '<div class="cat-ings">例：' + esc(g.keys.join("・")) + "</div></div>";
+        }).join("") : '<div class="ok-note">保湿・保護のグループは、どれも今の製品のいずれかに入っています。</div>');
+    }
+
+    // 重なっている成分（本体と同じ数え方）
+    const counts = ingredientCounts(analyzable);
+    const oArea = $("overlapArea");
+    if (analyzable.length < 2) {
+      oArea.innerHTML = '<div class="empty-note">成分登録済みの製品を2点以上選ぶと、共通する成分がここに出ます。' + (pendingN ? "（成分調査中の製品は含めていません）" : "") + "</div>";
+    } else {
+      const overlap = Object.keys(counts).filter(function (n) { return counts[n] >= 2 && BASE_INGS.indexOf(n) === -1; });
+      oArea.innerHTML = overlap.length === 0 ? '<div class="ok-note">今の組み合わせで、共通する成分はありません。</div>'
+        : '<div class="ing-chips">' + overlap.map(function (n) {
+            const grp = cm.groups.filter(function (g) { return careHits({ ingredients: [n] }, g).length; }).map(function (g) { return g.label; })[0] || "その他の成分";
+            return '<span class="ing-chip">' + esc(n) + "<small>" + esc(grp) + " ／ " + counts[n] + "点に共通</small></span>";
+          }).join("") + "</div>";
+    }
+
+    // おすすめ候補
+    $("recTitle").textContent = "おすすめ候補（" + label + "）";
+    $("recBanner").innerHTML = '<div class="target-banner">いま探しているもの：<b>' + esc(label) + "</b></div>";
+    const rArea = $("recArea"); rArea.innerHTML = "";
+    const usedIngs = {};
+    analyzable.forEach(function (p) { p.ingredients.forEach(function (n) { usedIngs[n] = true; }); });
+    let excludedN = 0;
+    const scoredAll = PRODUCTS
+      .filter(function (p) { return p.type === state.target && p._hasIng && !state.products[p._id] && !state.bad[p._id]; })
+      .filter(withinCap)
+      .filter(function (p) { return !state.origin || p._origin === state.origin; })
+      .map(function (p) {
+        const covered = [], ings = [];
+        cm.groups.forEach(function (g) {
+          const h = careHits(p, g);
+          if (h.length) { covered.push({ label: g.label }); h.forEach(function (n) { if (ings.indexOf(n) === -1) ings.push(n); }); }
+        });
+        const over = p.ingredients.filter(function (n, i) { return usedIngs[n] && BASE_INGS.indexOf(n) === -1 && p.ingredients.indexOf(n) === i; });
+        return { p: p, covered: covered, ings: ings, over: over };
+      })
+      .filter(function (r) { return r.covered.length > 0; })
+      .filter(function (r) { if (excluding && hasSuspect(r.p)) { excludedN++; return false; } return true; })
+      .sort(function (a, b) { return (b.covered.length - a.covered.length) || (a.over.length - b.over.length) || (b.ings.length - a.ings.length); });
+    bandPool = scoredAll.slice().sort(function (a, b) { return (b.covered.length - a.covered.length) || (b.ings.length - a.ings.length); });
+    bandMsg = ""; honmeiId = scoredAll.length ? scoredAll[0].p._id : null;
+    const scored = scoredAll.slice(0, 3);
+    const exclNote = excludedN ? '<p class="excl-note">合わない可能性のある成分を含む ' + excludedN + "件の製品を候補から外しました。</p>" : "";
+    if (!scored.length) {
+      rArea.innerHTML = exclNote + '<div class="empty-note">' + esc(label) + "の中には、条件に合う候補がデータ内にありませんでした。" +
+        (capNow() != null ? "上限価格を上げると見つかることがあります。" : "") + (state.origin ? "ブランドの出身を「気にしない」にすると見つかることがあります。" : "") +
+        (excludedN ? "「合わない可能性のある成分を含む製品を除く」を外すと、外した製品も候補に戻ります。" : "") + "</div>";
+    } else {
+      if (exclNote) rArea.insertAdjacentHTML("beforeend", exclNote);
+      scored.forEach(function (r, i) {
+        const base = '<p class="reason"><b>' + esc(r.ings.join("・")) + "</b> が入っています。</p>" +
+          '<p class="reason" style="font-size:12px;color:var(--muted);margin-top:0">該当グループ：' + esc(r.covered.map(groupLabel).join("・")) + "</p>" +
+          cautionLine(r.p) + spfLine(r.p);
+        if (i === 0) {
+          const why = "保湿・保護のグループ <b>" + r.covered.length + "種類</b>を含みます（" + r.covered.map(function (d) { return "「" + esc(d.label) + "」"; }).join("") + "）<br />" +
+            "使っているものと重なっている成分は <b>" + r.over.length + "件</b>です" +
+            (r.over.length ? "（" + esc(r.over.slice(0, 5).join("・")) + (r.over.length > 5 ? " ほか" : "") + "）" : "") +
+            (analyzable.length === 0 ? "<br /><small>（使っている" + esc(label) + "が選ばれていないため、重なりは0件として並べています）</small>" : "");
+          rArea.insertAdjacentHTML("beforeend", '<div class="honmei-label">本命のおすすめ</div>');
+          const c = card(r.p, '<span class="rank">1位</span>', '<p class="honmei-why">' + why + "</p>" + base);
+          c.classList.add("honmei");
+          rArea.appendChild(c);
+          if (scored.length > 1) rArea.insertAdjacentHTML("beforeend", '<p class="rank-sub">ほかの候補</p>');
+        } else {
+          rArea.appendChild(card(r.p, '<span class="rank">' + (i + 1) + "位</span>", base));
+        }
+      });
+    }
+    renderBand();
+
+    // 今の製品（この種類のものだけ）
+    const cArea = $("currentArea"); cArea.innerHTML = "";
+    if (!chosen.length) { cArea.innerHTML = '<div class="empty-note">' + esc(label) + "を選ぶと、ここに並びます。</div>"; return; }
+    chosen.forEach(function (p) {
+      if (!p._hasIng) { cArea.appendChild(card(p, "", '<p class="reason"><span class="pending">成分調査中</span></p>')); return; }
+      const reg = [];
+      cm.groups.forEach(function (g) { careHits(p, g).forEach(function (n) { if (reg.indexOf(n) === -1) reg.push(n); }); });
+      cArea.appendChild(card(p, "", '<p class="reason" style="font-size:12.5px;color:var(--muted)">保湿・保護のグループに入る成分：' + esc(reg.length ? reg.join("・") : "なし") + "</p>" + cautionLine(p) + spfLine(p)));
+    });
+  }
+
   function renderResults() {
+    if (careMode()) { renderCare(); return; }
     const chosen = selectedProducts();
     const tgt = targetById(state.target);
 
@@ -959,6 +1145,12 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
     const has = function (n) { return !!counts[n]; };
 
     // 合わない可能性のある成分
+    const suspects = renderBadArea(bad, analyzable);
+    const excluding = state.excludeBad && suspects.length > 0;
+    const hasSuspect = function (p) { return suspects.some(function (n) { return p.ingredients.indexOf(n) !== -1; }); };
+    renderMain(chosen, tgt, analyzable, pendingN, counts, pendingNote, has, desired, excluding, hasSuspect);
+  }
+  function renderBadArea(bad, analyzable) {
     const suspects = suspectIngredients(bad, analyzable);
     const bArea = $("badArea");
     if (bad.length === 0) {
@@ -989,8 +1181,9 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
       const ex = $("excludeChipBox");
       if (ex) ex.appendChild(chip("合わない可能性のある成分を含む製品を除く", state.excludeBad, function () { state.excludeBad = !state.excludeBad; render(); }));
     }
-    const excluding = state.excludeBad && suspects.length > 0;
-    const hasSuspect = function (p) { return suspects.some(function (n) { return p.ingredients.indexOf(n) !== -1; }); };
+    return suspects;
+  }
+  function renderMain(chosen, tgt, analyzable, pendingN, counts, pendingNote, has, desired, excluding, hasSuspect) {
 
     // 足りていない成分（グループ単位）
     const missing = desired.filter(function (d) { return !ING_GROUPS[d.gid].ings.some(has); });
@@ -1168,6 +1361,9 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
       : '<ul class="price-list"><li>価格・容量の情報はありません</li></ul>';
     sheetProduct = p;
     $("sheetOrigin").textContent = [p._origin && p._origin !== "不明" ? "出身：" + p._origin + "（メーカーからの目安）" : ""].filter(function (x) { return x; }).join("　／　");
+    const ct = cautionOf(p);
+    $("sheetCaution").hidden = !ct.length;
+    $("sheetCaution").textContent = ct.length ? "刺激が気になる方は注意されることが多い成分：" + ct.join("・") : "";
     $("sheetAttrs").innerHTML = (p.spf ? '<span class="attr">' + esc(p.spf) + '</span>' : "") +
       (p.waterproof ? '<span class="attr">' + (p.waterproof === true ? "ウォータープルーフ" : esc(p.waterproof)) + '</span>' : "") +
       (p.form ? '<span class="attr">形状：' + esc(p.form) + '</span>' : "") +
@@ -1177,7 +1373,9 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
     $("copyDone").textContent = "";
     $("sheetList").innerHTML = p._hasIng
       ? p.ingredients.map(function (n) {
-          const g = ING_TO_GROUPS[n];
+          // リップケア・ハンドクリームは、保湿・保護のグループで印を付ける
+          const cg = CARE_MODES[p.type] ? CARE_MODES[p.type].groups.filter(function (x) { return careHits({ ingredients: [n] }, x).length; }).map(function (x) { return x.label; }) : null;
+          const g = cg ? (cg.length ? cg : null) : ING_TO_GROUPS[n];
           const act = p.actives && p.actives.indexOf(n) !== -1 ? '<i class="act">有効成分</i>' : "";
           return '<li class="' + (g ? "hit" : "") + '"><div>' + esc(n) + act + "</div>" + (g ? "<span>" + esc(g[0]) + "</span>" : "") + "</li>";
         }).join("")
@@ -1267,7 +1465,22 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
       state.priceMode = b.getAttribute("data-mode"); state.limit = PAGE; render();
     });
   });
-  function render() { applyPriceMode(); buildInputs(); buildBadInputs(); renderResults(); }
+  // リップケア・ハンドクリームのときは、顔用の入力（年代・肌質・気になること）を隠す。選んだ内容は残す
+  const REC_SUB_DEFAULT = $("recSub").textContent, MISSING_SUB_DEFAULT = $("missingSub").textContent;
+  function applyCareMode() {
+    const cm = careMode();
+    $("careNote").hidden = !cm;
+    ["ageFieldset", "skinFieldset", "concernFieldset"].forEach(function (id) { $(id).hidden = !!cm; });
+    $("recSub").textContent = cm ? "保湿・保護のグループを多く含む順に最大3件（成分登録済みの" + state.target + "から）。注意されることが多い成分は表示だけで、候補からは除きません。タップすると全成分が見られます。" : REC_SUB_DEFAULT;
+    $("missingSub").textContent = cm ? state.target + "の保湿・保護のグループのうち、今の製品にどれも入っていないもの。" : MISSING_SUB_DEFAULT;
+    const other = cm ? selectedProducts().filter(function (p) { return p.type !== state.target; }).length : 0;
+    $("careIgnoreNote").hidden = !other;
+    $("careIgnoreNote").textContent = other ? "選択中のうち、" + state.target + "以外の " + other + "点は、この種類では使いません（選択は残しています）。" : "";
+    const otherBad = cm ? badProducts().filter(function (p) { return p.type !== state.target; }).length : 0;
+    $("careBadIgnoreNote").hidden = !otherBad;
+    $("careBadIgnoreNote").textContent = otherBad ? "選択中のうち、" + state.target + "以外の " + otherBad + "点は、この種類では使いません（選択は残しています）。" : "";
+  }
+  function render() { applyPriceMode(); applyCareMode(); buildInputs(); buildBadInputs(); renderResults(); }
   $("productSearch").addEventListener("input", function (e) { state.query = e.target.value; state.limit = PAGE; buildProductList(); });
   $("badSearch").addEventListener("input", function (e) { state.badQuery = e.target.value; state.badLimit = PAGE; buildBadList(); });
   render();
