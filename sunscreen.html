@@ -414,7 +414,7 @@ const SOAP_NOTE = "製品データに「石けんで落とせる」「洗顔料�
     return UV_ABSORBERS.some(function (a) { return a._keys.some(function (k) { return x.indexOf(k) !== -1; }); });
   };
 
-  // 対象製品：種類が日焼け止め、または spf 属性がある製品（ファンデーション・リップケアは除く）
+  // 対象製品：種類が日焼け止め、または spf 属性がある製品（ファンデーション・リップケア・ハンドクリームは除く）
   const ALL = PRODUCTS.map(function (p, i) {
     p._id = "p" + i;
     p.ingredients = p.ingredients || [];
@@ -424,8 +424,8 @@ const SOAP_NOTE = "製品データに「石けんで落とせる」「洗顔料�
     p._origin = _cls.origin; p._salon = _cls.salon;   // ブランドの出身・サロン系メーカー（classify.js。メーカー単位の目安）
     return p;
   });
-  // リップケアはSPFがあっても対象外（ファンデーションと同じ扱い）
-  const SUN = ALL.filter(function (p) { return p.type !== "ファンデーション" && p.type !== "リップケア" && (p.type === "日焼け止め" || !!p.spf); });
+  // リップケア・ハンドクリームはSPFがあっても対象外（ファンデーションと同じ扱い）
+  const SUN = ALL.filter(function (p) { return p.type !== "ファンデーション" && p.type !== "リップケア" && p.type !== "ハンドクリーム" && (p.type === "日焼け止め" || !!p.spf); });
   const BY_ID = {}; SUN.forEach(function (p) { BY_ID[p._id] = p; });
   SUN.forEach(function (p) {
     p._abs = p._hasIng ? p.ingredients.filter(isAbsorber) : [];
@@ -800,7 +800,7 @@ const SOAP_NOTE = "製品データに「石けんで落とせる」「洗顔料�
   // ---------- 件数・吸収剤一覧 ----------
   (function () {
     const withIng = SUN.filter(function (p) { return p._hasIng; }).length;
-    $("countLine").innerHTML = "対象製品 <b>" + SUN.length.toLocaleString() + "件</b>（種類が日焼け止めの製品と、SPF表示のある製品。ファンデーション・リップケアは除く。うち成分登録済み <b>" +
+    $("countLine").innerHTML = "対象製品 <b>" + SUN.length.toLocaleString() + "件</b>（種類が日焼け止めの製品と、SPF表示のある製品。ファンデーション・リップケア・ハンドクリームは除く。うち成分登録済み <b>" +
       withIng.toLocaleString() + "件</b>）" +
       "<br />読み込んだ登録製品は全 " + ALL.length.toLocaleString() + "件" + (typeof PRODUCTS_HAIR !== "undefined" ? "（ヘアケア " + PRODUCTS_HAIR.length.toLocaleString() + "件を含む）" : "") + "です。";
     $("absorberList").textContent = "※ 紫外線吸収剤として扱う成分：" + UV_ABSORBERS.map(function (a) { return a.label; }).join("、") + "。";
