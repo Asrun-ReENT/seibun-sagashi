@@ -225,6 +225,7 @@
   .stage.s1 { background: var(--surface-2); color: var(--ink); }
   .sub-reason { font-size: 12px; color: var(--muted); margin-top: 0; }
   .relax-note { font-size: 12.5px; color: var(--amber); background: var(--amber-soft); border-radius: 8px; padding: 8px 10px; margin: 0 0 10px; }
+  .sheet-origin:empty { display: none; }
 </style>
 </head>
 <body>
@@ -267,6 +268,11 @@
     </fieldset>
 
     <fieldset>
+      <legend>ブランドの出身</legend>
+      <div class="chips" id="originChips"></div>
+      <p class="muted-note" style="margin:6px 0 0;font-size:12px">メーカー名から判定した目安です。</p>
+    </fieldset>
+    <fieldset>
       <legend>上限価格<span class="opt">代表価格（税込の目安）で判定</span></legend>
       <div class="chips" id="capChips"></div>
       <p class="muted-note" id="capNote" style="margin:6px 0 0;font-size:12px"></p>
@@ -306,6 +312,7 @@
       <span class="copy-done" id="copyDone" aria-live="polite"></span>
     </div>
     <p class="sheet-attrs" id="sheetAttrs"></p>
+    <p class="sheet-origin" id="sheetOrigin" style="margin:4px 0 8px;font-size:12.5px;color:var(--muted)"></p>
     <div id="sheetPrices"></div>
     <ul class="full-list" id="sheetList"></ul>
     <p class="sheet-memo" id="sheetMemo"></p>
@@ -315,6 +322,8 @@
 
 <!-- 製品データは products.js（本体ページ・日焼け止めページ・このページで共通） -->
 <script src="products.js"></script>
+<!-- ブランドの出身・美容室専売系の判定（全ページ共通） -->
+<script src="classify.js"></script>
 <!-- =====================================================================
      クレンジング・洗顔ページの設定（ここは後から調整可）
      ===================================================================== -->
@@ -334,6 +343,10 @@ const AMINO_WITHIN = 10;
 const SOAP_BASE_RX = /石ケン素地|石けん素地|石鹸素地|せっけん素地/;
 const FATTY_ACIDS = ["ラウリン酸", "ミリスチン酸", "パルミチン酸", "ステアリン酸"];
 const KOH = ["水酸化K", "水酸化カリウム"];
+// ブランドの出身（classify.js の判定。「気にしない」以外では、判定が「不明」の製品は出さない）
+const ORIGIN_OPTS = [
+  { label: "気にしない", value: null }, { label: "国内", value: "国内" }, { label: "韓国", value: "韓国" }, { label: "海外（韓国以外）", value: "海外" }
+];
 const PRICE_CAPS = [
   { label: "上限なし", value: null }, { label: "〜1,000円", value: 1000 }, { label: "〜3,000円", value: 3000 },
   { label: "〜5,000円", value: 5000 }, { label: "〜10,000円", value: 10000 }
@@ -356,6 +369,8 @@ const PRICE_CAPS = [
   const ALL = PRODUCTS.map(function (p, i) {
     p._id = "p" + i; p.ingredients = p.ingredients || []; p.prices = p.prices || [];
     p._hasIng = p.ingredients.length > 0;
+    const _cls = typeof classifyProduct === "function" ? classifyProduct(p) : { origin: "不明", salon: false };
+    p._origin = _cls.origin; p._salon = _cls.salon;   // ブランドの出身・サロン系メーカー（classify.js。メーカー単位の目安）
     return p;
   });
   const CL = ALL.filter(function (p) { return p.type === "クレンジング" || p.type === "洗顔"; });
@@ -380,7 +395,7 @@ const PRICE_CAPS = [
   });
 
   const PAGE = 30;
-  const state = { current: null, issues: {}, tex: {}, cap: null, query: "", limit: PAGE, plimit: PAGE };
+  const state = { current: null, issues: {}, tex: {}, cap: null, origin: null, query: "", limit: PAGE, plimit: PAGE };
 
   const brandOf = function (p) { return [p.maker, p.series].filter(function (v) { return v; }).join(" ／ "); };
   const priceText = function (p) { const v = p.prices[0]; if (!v) return ""; return [v.price, v.volume].filter(function (x) { return x; }).join(" ／ "); };
@@ -448,6 +463,7 @@ const PRICE_CAPS = [
     return CL.filter(function (p) {
       if (state.current === p._id) return false;
       if (texSel().length && !state.tex[p.texture]) return false;
+      if (state.origin && p._origin !== state.origin) return false;
       return withinCap(p);
     });
   }
@@ -505,6 +521,9 @@ const PRICE_CAPS = [
       tb.appendChild(chip(t + (n ? "" : "（該当なし）"), !!state.tex[t], function () { if (state.tex[t]) delete state.tex[t]; else state.tex[t] = true; state.limit = PAGE; render(); }, n ? "" : "chip-empty"));
     });
     $("texNote").textContent = texSel().length ? "剤型が「" + texSel().join("」「") + "」のどれかに当たる製品を出します。" : "何も選ばなければ剤型では絞り込みません。洗顔フォーム・固形石けんなど、上にない剤型の製品は、剤型を選んでいないときだけ出ます。";
+    // ブランドの出身（単一選択）
+    const oc = $("originChips"); oc.innerHTML = "";
+    ORIGIN_OPTS.forEach(function (o) { oc.appendChild(chip(o.label, state.origin === o.value, function () { state.origin = o.value; state.limit = PAGE; render(); })); });
     const cb = $("capChips"); cb.innerHTML = "";
     PRICE_CAPS.forEach(function (c) { cb.appendChild(chip(c.label, state.cap === c.value, function () { state.cap = c.value; state.limit = PAGE; render(); })); });
     $("capNote").textContent = state.cap == null ? "価格がわからない製品も表示します。" : "候補と製品の検索に適用します。価格がわからない製品は除きます。";
@@ -581,6 +600,7 @@ const PRICE_CAPS = [
     const tags = [];
     ISSUES.forEach(function (i) { if (state.issues[i.id]) tags.push(i.label); });
     tags.push("剤型：" + (texSel().length ? texSel().join("／") : "指定なし"));
+    if (state.origin) tags.push("出身：" + (state.origin === "海外" ? "海外（韓国以外）" : state.origin));
     if (state.cap != null) tags.push("上限価格：〜" + state.cap.toLocaleString() + "円");
     $("condSummary").innerHTML = tags.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("");
 
@@ -642,6 +662,7 @@ const PRICE_CAPS = [
         }).join("") + '<li class="pnote">価格は税込の目安です（掲載時点）。1ml／1gあたりの価格は先頭の価格・容量で計算しています。</li></ul>'
       : '<ul class="price-list"><li>価格・容量の情報はありません</li></ul>';
     sheetProduct = p;
+    $("sheetOrigin").textContent = [p._origin && p._origin !== "不明" ? "出身：" + p._origin + "（メーカーからの目安）" : ""].filter(function (x) { return x; }).join("　／　");
     $("sheetAttrs").innerHTML = attrTags(p);
     $("copyDone").textContent = "";
     $("sheetList").innerHTML = p._hasIng

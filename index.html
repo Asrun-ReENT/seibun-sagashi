@@ -184,6 +184,13 @@
   }
   .card:active { background: var(--surface-2); }
   .card-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 8px; }
+  /* 本命のおすすめ */
+  .honmei-label { display: inline-block; font-size: 12.5px; font-weight: 800; color: var(--accent-ink); background: var(--accent); border-radius: 999px; padding: 2px 10px; margin: 0 0 6px; }
+  .card.honmei { border: 2px solid var(--accent); background: var(--accent-soft); }
+  .honmei-why { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--surface); font-size: 13px; line-height: 1.6; }
+  .honmei-why b { color: var(--accent); }
+  .honmei-mark { display: inline-block; font-size: 11.5px; font-weight: 800; color: var(--accent-ink); background: var(--accent); border-radius: 999px; padding: 1px 8px; margin-right: 6px; }
+  .rank-sub { margin: 14px 2px 6px; font-size: 12.5px; color: var(--muted); font-weight: 700; }
   .rank { font-size: 12px; font-weight: 800; color: var(--accent-ink); background: var(--accent); border-radius: 6px; padding: 0 8px; }
   .cname { font-weight: 800; font-size: 15px; }
   .reason { margin: 6px 0 2px; font-size: 13.5px; }
@@ -237,6 +244,7 @@
   .sheet-attrs:empty { display: none; }
   .attr { font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 1px 8px; }
   .sheet-note { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+  .sheet-origin:empty { display: none; }
 </style>
 </head>
 <body>
@@ -279,6 +287,11 @@
       <div class="target-guide" id="targetGuide" aria-live="polite"></div>
     </fieldset>
 
+    <fieldset>
+      <legend>ブランドの出身</legend>
+      <div class="chips" id="originChips"></div>
+      <p class="muted-note" style="margin:6px 0 0;font-size:12px">メーカー名から判定した目安です。</p>
+    </fieldset>
     <fieldset id="capFieldset">
       <legend>上限価格<span class="opt">代表価格（税込の目安）で判定</span></legend>
       <div class="chips" id="capChips"></div>
@@ -419,6 +432,7 @@
       <span class="copy-done" id="copyDone" aria-live="polite"></span>
     </div>
     <p class="sheet-attrs" id="sheetAttrs"></p>
+    <p class="sheet-origin" id="sheetOrigin" style="margin:4px 0 8px;font-size:12.5px;color:var(--muted)"></p>
     <div id="sheetPrices"></div>
     <ul class="full-list" id="sheetList"></ul>
     <p class="sheet-memo" id="sheetMemo"></p>
@@ -431,6 +445,8 @@
 <!-- ヘアケア製品は products-hair.js。PRODUCTS に足して、名前検索・成分名で探す・今使っている製品の選択肢から辿れるようにする -->
 <script src="products-hair.js"></script>
 <script>if (typeof PRODUCTS_HAIR !== "undefined") Array.prototype.push.apply(PRODUCTS, PRODUCTS_HAIR);</script>
+<!-- ブランドの出身・美容室専売系の判定（全ページ共通） -->
+<script src="classify.js"></script>
 
 <!-- =====================================================================
      成分グループと対応表（ここも後から調整可）
@@ -479,6 +495,10 @@ const BAND_MIN = 1000, BAND_MAX = 10000, BAND_STEP = 500;
 const BAND_WIDTHS = [500, 1000, 2000];
 const BAND_WIDTH_DEFAULT = 1000;
 // 価格の上限（円）。null は上限なし
+// ブランドの出身（classify.js の判定。「気にしない」以外では、判定が「不明」の製品は出さない）
+const ORIGIN_OPTS = [
+  { label: "気にしない", value: null }, { label: "国内", value: "国内" }, { label: "韓国", value: "韓国" }, { label: "海外（韓国以外）", value: "海外" }
+];
 const PRICE_CAPS = [
   { label: "上限なし", value: null },
   { label: "〜1,000円", value: 1000 },
@@ -512,11 +532,13 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
     p.ingredients = p.ingredients || [];
     p.prices = p.prices || [];
     p._hasIng = p.ingredients.length > 0;
+    const _cls = typeof classifyProduct === "function" ? classifyProduct(p) : { origin: "不明", salon: false };
+    p._origin = _cls.origin; p._salon = _cls.salon;   // ブランドの出身・サロン系メーカー（classify.js。メーカー単位の目安）
     BY_ID[p._id] = p;
   });
 
   const PAGE = 30; // 検索結果を一度に出す件数
-  const state = { age: null, skin: {}, concerns: {}, target: "all", products: {}, query: "", limit: PAGE, cap: null,
+  const state = { age: null, skin: {}, concerns: {}, target: "all", products: {}, query: "", limit: PAGE, cap: null, origin: null,
                   bad: {}, badQuery: "", badLimit: PAGE, excludeBad: true,
                   bandTarget: null,             // null のあいだは自動（今使っている製品の代表価格、なければ BAND_DEFAULT）
                   bandWidth: BAND_WIDTH_DEFAULT,
@@ -643,6 +665,9 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
     const cur = targetById(state.target);
     $("targetGuide").innerHTML = "<b>" + esc(cur.label) + "</b>：" + esc(cur.role);
 
+    // ブランドの出身（単一選択）
+    const oc = $("originChips"); oc.innerHTML = "";
+    ORIGIN_OPTS.forEach(function (o) { oc.appendChild(chip(o.label, state.origin === o.value, function () { state.origin = o.value; state.limit = PAGE; render(); })); });
     const capBox = $("capChips"); capBox.innerHTML = "";
     PRICE_CAPS.forEach(function (c) {
       capBox.appendChild(chip(c.label, state.cap === c.value, function () { state.cap = c.value; state.limit = PAGE; render(); }));
@@ -847,7 +872,7 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
   }
 
   // ---------- 価格帯の3つのおすすめ ----------
-  let bandPool = null, bandMsg = "";
+  let bandPool = null, bandMsg = "", honmeiId = null;
   const yen = function (n) { return n.toLocaleString() + "円"; };
   // 狙い価格の初期値：今使っている製品の代表価格（探している種類と同じ製品を優先、なければ選んだ順で最初の、価格がわかる製品）
   function bandAuto() {
@@ -860,7 +885,8 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
   }
   function bandCard(r) {
     const groupsTxt = r.covered.map(function (d) { return ING_GROUPS[d.gid].label; }).join("・");
-    return card(r.p, "",
+    // 本命のおすすめ（並び替えの1位）が3つの中にあれば印を付ける
+    return card(r.p, r.p._id === honmeiId ? '<span class="honmei-mark">本命のおすすめ</span>' : "",
       '<p class="reason"><b>' + esc(r.ings.join("・")) + "</b> が入っています。</p>" +
       '<p class="reason" style="font-size:12px;color:var(--muted);margin-top:0">該当グループ：' + esc(groupsTxt) + "</p>");
   }
@@ -921,6 +947,7 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
     const bad = badProducts();
     if (bad.length) tags.push("合わなかった製品 " + bad.length + "点");
     tags.push("探しているもの：" + tgt.label);
+    if (state.origin) tags.push("出身：" + (state.origin === "海外" ? "海外（韓国以外）" : state.origin));
     if (capNow() != null) tags.push("上限価格：〜" + state.cap.toLocaleString() + "円");
     $("condSummary").innerHTML = tags.map(function (t) { return '<span class="tag">' + esc(t) + "</span>"; }).join("");
 
@@ -1007,7 +1034,7 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
     const rArea = $("recArea"); rArea.innerHTML = "";
     // 製品未選択のときは、見たいグループ全体を対象にする
     const lookFor = analyzable.length === 0 ? desired : missing;
-    bandPool = null;
+    bandPool = null; honmeiId = null;
     if (desired.length === 0) {
       rArea.innerHTML = '<div class="empty-note">「気になること」か「肌質」を選ぶと、候補がここに出ます。</div>';
       bandMsg = "「気になること」か「肌質」を選ぶと、ここに価格帯ごとのおすすめが出ます。";
@@ -1016,10 +1043,13 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
       bandMsg = "足りていない成分グループがないため、候補はありません。";
     } else {
       let excludedN = 0;
+      const usedIngs = {};
+      analyzable.forEach(function (p) { p.ingredients.forEach(function (n) { usedIngs[n] = true; }); });
       const scoredAll = PRODUCTS
         .filter(function (p) { return !state.products[p._id] && !state.bad[p._id]; })
         .filter(function (p) { return p._hasIng && REC_TYPES.indexOf(p.type) !== -1; })
         .filter(withinCap)
+        .filter(function (p) { return !state.origin || p._origin === state.origin; })   // ブランドの出身（候補リストと価格帯の両方に効く）
         .filter(function (p) { return isAll || p.type === state.target; })
         .map(function (p) {
           const covered = lookFor.filter(function (d) {
@@ -1031,15 +1061,23 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
               if (p.ingredients.indexOf(n) !== -1 && ings.indexOf(n) === -1) ings.push(n);
             });
           });
-          return { p: p, covered: covered, ings: ings };
+          // 今使っている製品（成分登録済み）と重なっている成分。数え方は「重なっている成分」の欄と同じ（表示名の完全一致、BASE_INGS は除く）
+          const over = p.ingredients.filter(function (n, i) {
+            return usedIngs[n] && BASE_INGS.indexOf(n) === -1 && p.ingredients.indexOf(n) === i;
+          });
+          return { p: p, covered: covered, ings: ings, over: over };
         })
         .filter(function (r) { return r.covered.length > 0; })
         .filter(function (r) {
           if (excluding && hasSuspect(r.p)) { excludedN++; return false; }
           return true;
         })
-        .sort(function (a, b) { return (b.covered.length - a.covered.length) || (b.ings.length - a.ings.length); });
-      bandPool = scoredAll; bandMsg = "";
+        // 並び順：①補えるグループの数（多い順）②使っている製品との重なりの数（少ない順）③補える成分名の数（多い順）
+        .sort(function (a, b) { return (b.covered.length - a.covered.length) || (a.over.length - b.over.length) || (b.ings.length - a.ings.length); });
+      // 価格帯の3つのおすすめは選び方を変えない（同じ距離のときの順は、従来の並び＝重なりを見ない順）
+      bandPool = scoredAll.slice().sort(function (a, b) { return (b.covered.length - a.covered.length) || (b.ings.length - a.ings.length); });
+      bandMsg = "";
+      honmeiId = scoredAll.length ? scoredAll[0].p._id : null;
       const scored = scoredAll.slice(0, 3);
 
       const exclNote = excludedN
@@ -1053,9 +1091,23 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
         if (exclNote) rArea.insertAdjacentHTML("beforeend", exclNote);
         scored.forEach(function (r, i) {
           const groupsTxt = r.covered.map(function (d) { return ING_GROUPS[d.gid].label; }).join("・");
-          rArea.appendChild(card(r.p, '<span class="rank">' + (i + 1) + "位</span>",
-            '<p class="reason"><b>' + esc(r.ings.join("・")) + "</b> が入っています。</p>" +
-            '<p class="reason" style="font-size:12px;color:var(--muted);margin-top:0">該当グループ：' + esc(groupsTxt) + "</p>"));
+          const base = '<p class="reason"><b>' + esc(r.ings.join("・")) + "</b> が入っています。</p>" +
+            '<p class="reason" style="font-size:12px;color:var(--muted);margin-top:0">該当グループ：' + esc(groupsTxt) + "</p>";
+          if (i === 0) {
+            // 1位＝本命のおすすめ：理由を一言（補える分と重なり。数字とグループ名は判定結果そのまま）
+            const why =
+              "足りない成分グループ <b>" + lookFor.length + "件中 " + r.covered.length + "件</b>を補えます（" + r.covered.map(function (d) { return "「" + esc(ING_GROUPS[d.gid].label) + "」"; }).join("") + "）<br />" +
+              "使っているものと重なっている成分は <b>" + r.over.length + "件</b>です" +
+              (r.over.length ? "（" + esc(r.over.slice(0, 5).join("・")) + (r.over.length > 5 ? " ほか" : "") + "）" : "") +
+              (analyzable.length === 0 ? "<br /><small>（使っている製品が選ばれていないため、重なりは0件として並べています）</small>" : "");
+            rArea.insertAdjacentHTML("beforeend", '<div class="honmei-label">本命のおすすめ</div>');
+            const c = card(r.p, '<span class="rank">1位</span>', '<p class="honmei-why">' + why + "</p>" + base);
+            c.classList.add("honmei");
+            rArea.appendChild(c);
+            if (scored.length > 1) rArea.insertAdjacentHTML("beforeend", '<p class="rank-sub">ほかの候補</p>');
+          } else {
+            rArea.appendChild(card(r.p, '<span class="rank">' + (i + 1) + "位</span>", base));
+          }
         });
       }
     }
@@ -1115,6 +1167,7 @@ const BASE_INGS = ["水", "BG", "グリセリン", "DPG", "PG", "エタノール
         }).join("") + '<li class="pnote">価格は税込の目安です（掲載時点）。1ml／1gあたりの価格は先頭の価格・容量で計算しています。</li></ul>'
       : '<ul class="price-list"><li>価格・容量の情報はありません</li></ul>';
     sheetProduct = p;
+    $("sheetOrigin").textContent = [p._origin && p._origin !== "不明" ? "出身：" + p._origin + "（メーカーからの目安）" : ""].filter(function (x) { return x; }).join("　／　");
     $("sheetAttrs").innerHTML = (p.spf ? '<span class="attr">' + esc(p.spf) + '</span>' : "") +
       (p.waterproof ? '<span class="attr">' + (p.waterproof === true ? "ウォータープルーフ" : esc(p.waterproof)) + '</span>' : "") +
       (p.form ? '<span class="attr">形状：' + esc(p.form) + '</span>' : "") +
